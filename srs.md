@@ -51,9 +51,6 @@ graph TD
     BLD -->|Xem báo cáo hiệu suất| CAB
     NVV -->|Xem báo cáo vận hành| CAB
 
-    style CAB fill:#f9f,stroke:#333,stroke-width:2px
-    style BA fill:#bbf,stroke:#333,stroke-width:1px
-
 ```
 
 ---
