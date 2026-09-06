@@ -171,54 +171,80 @@ sequenceDiagram
 ```
 ### 7 Phân tích chức năng nghiệp vụ
 
-Dựa trên sơ đồ, hệ thống có thể phân rã thành 4 nhóm chức năng nghiệp vụ chính (module), mỗi nhóm gồm các chức năng con (use case) cụ thể.
+# Phân Tích Chức Năng Nghiệp Vụ — Hệ Thống Gọi Xe Công Nghệ (CAB)
 
-1. Module Đặt xe & Điều phối tài xế (Booking & Dispatch)
+> Tài liệu phân rã các chức năng nghiệp vụ dựa trên Sequence Diagram hệ thống CAB.
 
-Chức năng nghiệp vụ:
+---
 
-F1.1 – Đặt chuyến đi: Khách hàng nhập điểm đón, điểm đến, chọn loại dịch vụ xe (car/bike/premium...)
-F1.2 – Tìm kiếm tài xế phù hợp: Hệ thống dựa trên vị trí GPS và trạng thái (rảnh/bận) để lọc danh sách tài xế gần nhất
-F1.3 – Gửi yêu cầu chuyến đi tới tài xế: Push notification/thông báo yêu cầu nhận chuyến
-F1.4 – Xử lý phản hồi tài xế: Ghi nhận Chấp nhận / Từ chối / Timeout không phản hồi
-F1.5 – Vòng lặp tìm tài xế thay thế: Nếu bị từ chối, tự động chuyển yêu cầu sang tài xế tiếp theo trong danh sách
-F1.6 – Thông báo kết quả đặt xe cho khách: Báo tìm thấy tài xế kèm ETA (thời gian dự kiến đến), hoặc báo không tìm được tài xế
+## Tổng quan
 
-Đối tượng nghiệp vụ liên quan: Driver Pool, Trip Request, Location Tracking, Vehicle Type/Service Type.
+Hệ thống được phân rã thành **4 module nghiệp vụ chính**:
 
-2. Module Quản lý hành trình (Trip Execution / Trip Lifecycle)
+1. Đặt xe & Điều phối tài xế
+2. Quản lý hành trình (Trip Lifecycle)
+3. Tính cước & Thanh toán
+4. Đánh giá & Báo cáo vận hành
 
-Chức năng nghiệp vụ:
+---
 
-F2.1 – Cập nhật trạng thái "Tài xế đã đến điểm đón"
-F2.2 – Thông báo real-time cho khách hàng khi trạng thái chuyến đi thay đổi
-F2.3 – Cập nhật trạng thái "Đã đón khách / Đang di chuyển"
-F2.4 – Cập nhật trạng thái "Hoàn thành chuyến đi"
+## 1. Module Đặt Xe & Điều Phối Tài Xế (Booking & Dispatch)
 
-Ghi chú nghiệp vụ: Đây thực chất là một State Machine của chuyến đi (Trip Status): Requested → Accepted → Driver Arrived → In Progress → Completed. Có thể bổ sung thêm trạng thái Cancelled (hủy chuyến) mà sơ đồ hiện chưa mô tả — đây là điểm cần làm rõ thêm khi phân tích đầy đủ.
+| Mã | Chức năng | Mô tả |
+|----|-----------|-------|
+| F1.1 | Đặt chuyến đi | Khách hàng nhập điểm đón, điểm đến, chọn loại dịch vụ xe (car/bike/premium...) |
+| F1.2 | Tìm kiếm tài xế phù hợp | Lọc tài xế gần nhất dựa trên vị trí GPS và trạng thái (rảnh/bận) |
+| F1.3 | Gửi yêu cầu chuyến đi tới tài xế | Push notification yêu cầu nhận chuyến |
+| F1.4 | Xử lý phản hồi tài xế | Ghi nhận Chấp nhận / Từ chối / Timeout không phản hồi |
+| F1.5 | Tìm tài xế thay thế | Tự động chuyển yêu cầu sang tài xế tiếp theo nếu bị từ chối |
+| F1.6 | Thông báo kết quả đặt xe | Báo tìm thấy tài xế kèm ETA, hoặc báo không tìm được tài xế |
 
-3. Module Tính cước & Thanh toán (Fare Calculation & Payment)
+**Đối tượng nghiệp vụ liên quan:** Driver Pool, Trip Request, Location Tracking, Vehicle/Service Type.
 
-Chức năng nghiệp vụ:
+---
 
-F3.1 – Tính cước phí: Dựa trên loại dịch vụ, quãng đường, có thể có thêm thời gian di chuyển, phụ phí giờ cao điểm (chưa thấy mô tả trong sơ đồ)
-F3.2 – Hiển thị số tiền cần thanh toán cho khách hàng
-F3.3 – Thanh toán tiền mặt (Cash):
-Khách trả trực tiếp cho tài xế
-Tài xế xác nhận đã nhận tiền vào hệ thống
-F3.4 – Thanh toán điện tử (E-payment):
-Khách chọn hình thức thanh toán điện tử
-Gọi API tới cổng thanh toán bên thứ 3
-Xử lý kết quả: Thành công → xác nhận giao dịch; Thất bại → báo lỗi và cho phép thanh toán lại (retry)
+## 2. Module Quản Lý Hành Trình (Trip Execution)
 
-Đối tượng nghiệp vụ liên quan: Fare Engine, Payment Gateway Integration, Transaction Log.
+| Mã | Chức năng | Mô tả |
+|----|-----------|-------|
+| F2.1 | Cập nhật "Tài xế đã đến điểm đón" | Tài xế xác nhận đã tới vị trí đón khách |
+| F2.2 | Thông báo real-time cho khách | Đồng bộ trạng thái chuyến đi tới khách hàng |
+| F2.3 | Cập nhật "Đã đón khách / Đang di chuyển" | Chuyển trạng thái chuyến đi |
+| F2.4 | Cập nhật "Hoàn thành chuyến đi" | Kết thúc hành trình |
 
-Điểm cần lưu ý khi phân tích sâu hơn: Sơ đồ chưa thể hiện: xử lý hoàn tiền (refund), xử lý khi khách không thanh toán được nhiều lần, hay cơ chế đối soát (reconciliation) với cổng thanh toán.
+**Ghi chú nghiệp vụ:** Đây là một **State Machine** của chuyến đi:
 
-4. Module Đánh giá & Báo cáo vận hành (Rating & Reporting)
+```
+Requested → Accepted → Driver Arrived → In Progress → Completed
+```
 
-Chức năng nghiệp vụ:
+> ⚠️ Sơ đồ hiện chưa mô tả trạng thái **Cancelled** (hủy chuyến) — cần bổ sung khi phân tích đầy đủ.
 
-F4.1 – Đánh giá tài xế/chuyến đi: Khách hàng chấm điểm, nhận xét sau khi kết thúc chuyến
-F4.2 – Lưu trữ dữ liệu chuyến đi: Ghi nhận toàn bộ vòng đời chuyến đi vào hệ thống
-F4.3 – Cập nhật báo cáo vận hành/doanh thu: Tổng hợp dữ liệu phục vụ nhân viên vận hành (revenue report, driver performance report...)
+---
+
+## 3. Module Tính Cước & Thanh Toán (Fare & Payment)
+
+| Mã | Chức năng | Mô tả |
+|----|-----------|-------|
+| F3.1 | Tính cước phí | Dựa trên loại dịch vụ, quãng đường |
+| F3.2 | Hiển thị số tiền cần thanh toán | Thông báo cho khách hàng |
+| F3.3 | Thanh toán tiền mặt | Khách trả trực tiếp → Tài xế xác nhận nhận tiền vào hệ thống |
+| F3.4 | Thanh toán điện tử | Gọi API cổng thanh toán ngoài → xử lý kết quả Thành công/Thất bại |
+| F3.4.1 | Xử lý giao dịch thất bại | Báo lỗi và cho phép khách thanh toán lại (retry) |
+
+**Đối tượng nghiệp vụ liên quan:** Fare Engine, Payment Gateway Integration, Transaction Log.
+
+> ⚠️ **Khoảng trống nghiệp vụ:** chưa có cơ chế hoàn tiền (refund), xử lý thanh toán thất bại nhiều lần, hoặc đối soát (reconciliation) với cổng thanh toán.
+
+---
+
+## 4. Module Đánh Giá & Báo Cáo Vận Hành (Rating & Reporting)
+
+| Mã | Chức năng | Mô tả |
+|----|-----------|-------|
+| F4.1 | Đánh giá tài xế/chuyến đi | Khách hàng chấm điểm, nhận xét |
+| F4.2 | Lưu trữ dữ liệu chuyến đi | Ghi nhận toàn bộ vòng đời chuyến đi |
+| F4.3 | Cập nhật báo cáo vận hành/doanh thu | Tổng hợp dữ liệu phục vụ nhân viên vận hành |
+
+---
+
