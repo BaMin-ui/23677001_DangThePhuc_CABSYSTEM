@@ -6,13 +6,13 @@ Dưới đây là tài liệu phân tích hệ thống **CAB System (Nền tản
 
 ## 1. Stakeholder Matrix (Power – Interest Grid)
 
-| Stakeholder | Power (Quyền lực/Ảnh hưởng) | Interest (Mức độ quan tâm) | Chiến lược quản lý | Vai trò chính |
+| Stakeholder | Power (Quyền lực/Ảnh hưởng) | Interest (Mức độ quan tâm) | Vai trò chính |
 |---|---|---|---|---|
-| Ban lãnh đạo / Ban giám đốc | Cao | Cao | **Manage Closely** – quản lý sát sao | Ra quyết định, phê duyệt dự án, theo dõi doanh thu & hiệu quả vận hành |
-| Nhân viên vận hành | Trung bình | Cao | **Keep Informed / Involve** – giữ liên hệ chặt | Thực thi thao tác quản trị hàng ngày, xử lý sự cố |
-| Khách hàng (Customer/Passenger) | Thấp | Cao | **Keep Informed** – thông tin đầy đủ, thường xuyên | Người dùng cuối đặt xe, trải nghiệm dịch vụ |
-| Tài xế (Driver) | Thấp | Cao | **Keep Informed** – thông tin đầy đủ, thường xuyên | Người dùng cuối cung cấp dịch vụ vận chuyển |
-| Nhà cung cấp thanh toán bên ngoài | Trung bình | Thấp | **Keep Satisfied** – đảm bảo hài lòng, tuân thủ hợp đồng/bảo mật | Đối tác xử lý giao dịch thanh toán điện tử |
+| Ban lãnh đạo / Ban giám đốc | Cao | Cao |  Ra quyết định, phê duyệt dự án, theo dõi doanh thu & hiệu quả vận hành |
+| Nhân viên vận hành | Trung bình | Cao |  Thực thi thao tác quản trị hàng ngày, xử lý sự cố |
+| Khách hàng (Customer/Passenger) | Thấp | Cao | Người dùng cuối đặt xe, trải nghiệm dịch vụ |
+| Tài xế (Driver) | Thấp | Cao | Người dùng cuối cung cấp dịch vụ vận chuyển |
+| Nhà cung cấp thanh toán bên ngoài | Trung bình | Thấp | Đối tác xử lý giao dịch thanh toán điện tử |
 
 ### Biểu đồ ma trận (Mermaid Quadrant Chart)
 
