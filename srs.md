@@ -51,8 +51,8 @@ Sơ đồ Mermaid thể hiện mối quan hệ và sự tương tác giữa các
 ```mermaid
 graph TD
     %% Định nghĩa các node Stakeholder
-    BLD[Ban lãnh đạo / Giám đốc] -->|Định hướng & Phê duyệt| BA[Business Analyst]
-    BA -->|Cung cấp tài liệu yêu cầu| DEV[Nhóm phát triển]
+    BLD[Ban lãnh đạo / Giám đốc] 
+   
     
     KH[Khách hàng] -->|Đặt xe & Thanh toán| CAB[CAB System Platform]
     TX[Tài xế] -->|Nhận chuyến & Cập nhật trạng thái| CAB
