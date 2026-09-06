@@ -742,4 +742,87 @@ Then hệ thống ghi log đầy đủ (thời gian, bên thực hiện, trạng
 
 - Các AC trên được viết ở mức **chức năng nghiệp vụ**, sẵn sàng cho việc chuyển thành test case chi tiết (test case ID, dữ liệu test cụ thể, kỳ vọng UI).
 - Một số AC (như AC4.5, ACX.1, ACX.2) đến từ các quy tắc nghiệp vụ đã xác định trước đó, cần được xác nhận lại với đội nghiệp vụ vì Sequence Diagram gốc không thể hiện rõ ràng những trường hợp này.
+### Bảng truy vết 
+# Bảng Truy Vết (Traceability Matrix) — Hệ Thống CAB
+
+> Liên kết xuyên suốt giữa: **Chức năng nghiệp vụ (F)** ↔ **Use Case (UC)** ↔ **Quy tắc nghiệp vụ (BR)** ↔ **Entity liên quan** ↔ **Tiêu chí chấp nhận (AC)**
+
+---
+
+## 1. Nhóm Đặt Xe & Điều Phối Tài Xế
+
+| Chức năng (F) | Use Case | Quy tắc nghiệp vụ (BR) | Entity liên quan | Tiêu chí chấp nhận (AC) |
+|---|---|---|---|---|
+| F1.1 – Đặt chuyến đi | UC1. Đặt chuyến đi | BR1.1 | Customer, Trip | AC1.1, AC1.2 |
+| F1.2 – Tìm kiếm tài xế phù hợp | UC1. Đặt chuyến đi | BR1.2 | Driver, Trip | AC1.1, AC1.3 |
+| F1.3 – Gửi yêu cầu chuyến đi tới tài xế | UC1. Đặt chuyến đi | BR1.3 | TripRequest, Driver | AC1.1 |
+| F1.4 – Xử lý phản hồi tài xế | UC1. Đặt chuyến đi | BR1.4 | TripRequest | AC1.4, AC1.5 |
+| F1.5 – Tìm tài xế thay thế | UC1. Đặt chuyến đi | BR1.4, BR1.5 | TripRequest, Driver | AC1.3, AC1.4 |
+| F1.6 – Thông báo kết quả đặt xe | UC1. Đặt chuyến đi | BR1.5, BR1.6, BR1.7 | Trip, Customer | AC1.3, AC1.5 |
+
+---
+
+## 2. Nhóm Quản Lý Hành Trình
+
+| Chức năng (F) | Use Case | Quy tắc nghiệp vụ (BR) | Entity liên quan | Tiêu chí chấp nhận (AC) |
+|---|---|---|---|---|
+| F2.1 – Cập nhật "Tài xế đã đến điểm đón" | UC2. Theo dõi hành trình | BR2.1, BR2.2 | Trip, TripStatusLog | AC2.1 |
+| F2.2 – Thông báo real-time cho khách | UC2. Theo dõi hành trình | BR2.3 | Trip, Customer | AC2.1, AC2.2 |
+| F2.3 – Cập nhật "Đã đón khách / Đang di chuyển" | UC2. Theo dõi hành trình | BR2.1, BR2.2 | Trip, TripStatusLog | AC2.2, AC2.3 |
+| F2.4 – Cập nhật "Hoàn thành chuyến đi" | UC3. Xử lý chuyến đi | BR2.1, BR2.4 | Trip, TripStatusLog | AC3.1, AC3.2 |
+
+---
+
+## 3. Nhóm Tính Cước & Thanh Toán
+
+| Chức năng (F) | Use Case | Quy tắc nghiệp vụ (BR) | Entity liên quan | Tiêu chí chấp nhận (AC) |
+|---|---|---|---|---|
+| F3.1 – Tính cước phí | UC4. Thanh toán chuyến đi | BR3.1 | Trip, Fare | AC4.1 |
+| F3.2 – Hiển thị số tiền cần thanh toán | UC4. Thanh toán chuyến đi | BR3.2 | Fare, Customer | AC4.1 |
+| F3.3 – Thanh toán tiền mặt | UC4. Thanh toán chuyến đi | BR3.3, BR3.4 | Payment | AC4.2 |
+| F3.4 – Thanh toán điện tử | UC4. Thanh toán chuyến đi | BR3.3, BR3.5 | Payment, PaymentGatewayTxn | AC4.3, AC4.5 |
+| F3.4.1 – Xử lý giao dịch thất bại | UC4. Thanh toán chuyến đi | BR3.6, BR3.7 | Payment, PaymentGatewayTxn | AC4.4 |
+
+---
+
+## 4. Nhóm Đánh Giá & Báo Cáo Vận Hành
+
+| Chức năng (F) | Use Case | Quy tắc nghiệp vụ (BR) | Entity liên quan | Tiêu chí chấp nhận (AC) |
+|---|---|---|---|---|
+| F4.1 – Đánh giá tài xế/chuyến đi | UC5. Đánh giá tài xế | BR4.1 | Rating, Trip, Driver | AC5.1, AC5.2 |
+| F4.2 – Lưu trữ dữ liệu chuyến đi | UC6. Xem báo cáo vận hành | BR4.2 | Trip, Fare, Payment, Rating | AC6.1 |
+| F4.3 – Cập nhật báo cáo vận hành/doanh thu | UC6. Xem báo cáo vận hành | BR4.3 | OperationReport, Operator | AC6.1, AC6.2 |
+
+---
+
+## 5. Quy Tắc Xuyên Suốt (Cross-cutting)
+
+| Quy tắc nghiệp vụ (BR) | Use Case liên quan | Entity liên quan | Tiêu chí chấp nhận (AC) |
+|---|---|---|---|
+| BRX.1 – Một khách hàng chỉ có 1 chuyến hoạt động | UC1. Đặt chuyến đi | Customer, Trip | ACX.1 |
+| BRX.2 – Một tài xế không nhận chồng chéo | UC1. Đặt chuyến đi | Driver, Trip | ACX.2 |
+| BRX.3 – Ghi log mọi giao tiếp trạng thái | UC2, UC3, UC4 | TripStatusLog, Payment | ACX.3 |
+| BRX.4 – Không tự ý xác nhận giao dịch khi chưa có phản hồi cổng TT | UC4. Thanh toán chuyến đi | Payment, PaymentGatewayTxn | AC4.5 |
+
+---
+
+## 6. Ma Trận Tổng Hợp Use Case ↔ Actor ↔ Entity Trung Tâm
+
+| Use Case | Actor chính | Actor phụ | Entity trung tâm bị tác động |
+|---|---|---|---|
+| UC1. Đặt chuyến đi | Khách hàng | Tài xế | Trip, TripRequest |
+| UC2. Theo dõi hành trình | Khách hàng | Tài xế | Trip, TripStatusLog |
+| UC3. Xử lý chuyến đi | Tài xế | — | Trip, TripStatusLog |
+| UC4. Thanh toán chuyến đi | Khách hàng | Cổng thanh toán ngoài, Tài xế | Fare, Payment, PaymentGatewayTxn |
+| UC5. Đánh giá tài xế | Khách hàng | Tài xế | Rating |
+| UC6. Xem báo cáo vận hành | Nhân viên vận hành | — | OperationReport |
+
+---
+
+## Ghi Chú Về Độ Phủ (Coverage)
+
+- Mọi **chức năng nghiệp vụ (F)** đều được ánh xạ tới ít nhất 1 Use Case, 1 Quy tắc nghiệp vụ và 1 Tiêu chí chấp nhận — không có chức năng nào "mồ côi" (orphan).
+- Các mục gắn nhãn *(Đề xuất bổ sung)* trong tài liệu Quy tắc nghiệp vụ (BR2.5, BR3.7, BR4.4) **chưa có Tiêu chí chấp nhận tương ứng** vì cần xác nhận thêm với đội nghiệp vụ trước khi đặc tả — đây là khoảng trống cần theo dõi.
+- Khi bổ sung các entity còn thiếu (Vehicle, Promotion, Account, Complaint, CancellationLog), cần cập nhật lại bảng này để đảm bảo truy vết đầy đủ.
+
 
