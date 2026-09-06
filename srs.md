@@ -22,27 +22,33 @@ Hệ thống cung cấp giải pháp kết nối giữa khách hàng có nhu c�
 Dưới đây là sơ đồ Mermaid thể hiện tương tác giữa các tác nhân và hệ thống CAB:
 
 ```mermaid
-graph TD
-    subgraph Hệ thống CAB System
-        A[Quản lý tài khoản & Xác thực]
-        B[Đặt xe & Điều phối tài xế]
-        C[Quản lý chuyến đi & GPS]
-        D[Tính cước & Thanh toán]
-        E[Hệ thống thông báo]
-        F[Quản trị & Báo cáo]
-    end
+mindmap
+  root((Stakeholders<br/>CAB System))
+  
+    Ban lãnh đạo / Ban giám đốc
+      Người ra quyết định, phê duyệt dự án
+      Quan tâm khả năng mở rộng hệ thống
+      Theo dõi doanh thu & báo cáo vận hành
+      Đánh giá tỷ lệ chuyến hoàn thành/hủy & hiệu quả tài xế
 
-    KH([Khách hàng]) --> A
-    KH --> B
-    KH --> C
-    KH --> D
-    KH --> E
+    Nhân viên vận hành
+      Thực thi các thao tác quản trị hàng ngày
+      Theo dõi chuyến đi & xử lý sự cố
+      Phân quyền truy cập (giới hạn thao tác nhạy cảm)
 
-    TX([Tài xế]) --> A
-    TX --> B
-    TX --> C
-    TX --> E
+    Khách hàng (Customer/Passenger)
+      Người dùng cuối đặt xe trực tuyến
+      Trải nghiệm đặt xe (chọn điểm đi/đến, loại xe)
+      Theo dõi thời gian thực & vị trí tài xế
+      Thanh toán cước phí & đánh giá tài xế
 
-    NV([Nhân viên vận hành]) --> A
-    NV --> C
-    NV --> F
+    Tài xế (Driver)
+      Người dùng cuối cung cấp dịch vụ vận chuyển
+      Quản lý hồ sơ, phương tiện & trạng thái sẵn sàng
+      Nhận/từ chối chuyến & cập nhật trạng thái chuyến đi
+      Truyền dữ liệu định vị GPS thời gian thực
+
+    Nhà cung cấp thanh toán bên ngoài
+      Đối tác tích hợp bên thứ ba
+      Xử lý giao dịch thanh toán điện tử an toàn
+      Bảo mật (không lưu thông tin nhạy cảm thẻ trong hệ thống CAB)
