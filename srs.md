@@ -4,27 +4,17 @@ Dưới đây là tài liệu phân tích hệ thống **CAB System (Nền tản
 
 # BÁO CÁO PHÂN TÍCH HỆ THỐNG: CAB SYSTEM
 
-## 1. Xác định Các Bên Liên Quan (Stakeholder Identification)
+## 1. Stakeholder Matrix (Power – Interest Grid)
 
-Dựa trên ngữ cảnh dự án xây dựng hệ thống **CAB System** trong vòng 7 tuần, các bên liên quan được xác định và phân nhóm như sau:
+| Stakeholder | Power (Quyền lực/Ảnh hưởng) | Interest (Mức độ quan tâm) | Chiến lược quản lý | Vai trò chính |
+|---|---|---|---|---|
+| Ban lãnh đạo / Ban giám đốc | Cao | Cao | **Manage Closely** – quản lý sát sao | Ra quyết định, phê duyệt dự án, theo dõi doanh thu & hiệu quả vận hành |
+| Nhân viên vận hành | Trung bình | Cao | **Keep Informed / Involve** – giữ liên hệ chặt | Thực thi thao tác quản trị hàng ngày, xử lý sự cố |
+| Khách hàng (Customer/Passenger) | Thấp | Cao | **Keep Informed** – thông tin đầy đủ, thường xuyên | Người dùng cuối đặt xe, trải nghiệm dịch vụ |
+| Tài xế (Driver) | Thấp | Cao | **Keep Informed** – thông tin đầy đủ, thường xuyên | Người dùng cuối cung cấp dịch vụ vận chuyển |
+| Nhà cung cấp thanh toán bên ngoài | Trung bình | Thấp | **Keep Satisfied** – đảm bảo hài lòng, tuân thủ hợp đồng/bảo mật | Đối tác xử lý giao dịch thanh toán điện tử |
 
-* **Khách hàng (Customer):** Người sử dụng dịch vụ đặt xe, theo dõi hành trình và thực hiện thanh toán.
-
-
-* **Tài xế (Driver):** Người cung cấp dịch vụ vận chuyển, nhận chuyến, cập nhật trạng thái chuyến đi và vị trí.
-
-
-* **Nhân viên vận hành (Operations Staff):** Quản lý tài xế, phương tiện, khách hàng, xử lý sự cố chuyến đi và tra cứu giao dịch.
-
-
-* **Ban lãnh đạo / Ban giám đốc (Management / Executive Board):** Định hướng chiến lược, phê duyệt ngân sách, yêu cầu báo cáo doanh thu, hiệu suất hệ thống.
-
-
-* **Nhà cung cấp thanh toán bên ngoài (Third-party Payment Gateway):** Xử lý giao dịch thanh toán điện tử.
-
-
-## 2. Ma trận Stakeholder (Stakeholder Matrix - Power/Interest Grid)
-
+### Biểu đồ ma trận (Mermaid Quadrant Chart)
 
 ```mermaid
 quadrantChart
@@ -37,11 +27,10 @@ quadrantChart
     quadrant-4 Keep Informed
     Ban lanh dao/Ban giam doc: [0.85, 0.9]
     Nhan vien van hanh: [0.75, 0.55]
-    Khach hang: [1, 0.25]
-    Tai xe: [1, 0.2]
+    Khach hang: [0.8, 0.25]
+    Tai xe: [0.78, 0.2]
     Nha cung cap thanh toan: [0.3, 0.55]
 ```
-
 
 
 ## 3. Sơ đồ Quan hệ giữa các Stakeholder (Stakeholder Relationship Diagram)
