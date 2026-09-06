@@ -21,13 +21,9 @@ Hệ thống cung cấp giải pháp kết nối giữa khách hàng có nhu c�
 ### 2.2 Sơ đồ tổng quan hệ thống (Use Case / Context Diagram)
 Dưới đây là sơ đồ Mermaid thể hiện tương tác giữa các tác nhân và hệ thống CAB:
 
-``````mermaid
-
+```mermaid
 mindmap
-
   root((Stakeholders<br/>CAB System))
-
-  
 
     Ban lãnh đạo / Ban giám đốc
 
