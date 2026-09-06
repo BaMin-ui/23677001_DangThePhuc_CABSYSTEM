@@ -25,22 +25,23 @@ Dựa trên ngữ cảnh dự án xây dựng hệ thống **CAB System** trong 
 
 ## 2. Ma trận Stakeholder (Stakeholder Matrix - Power/Interest Grid)
 
-Ma trận dưới đây phân loại các bên liên quan dựa trên mức độ quyền lực (Power) và mức độ quan tâm (Interest) đối với dự án CAB System:
+```mermaid
+quadrantChart
+    title Stakeholder Matrix - Power vs Interest
+    x-axis Low Interest --> High Interest
+    y-axis Low Power --> High Power
+    quadrant-1 Manage Closely
+    quadrant-2 Keep Satisfied
+    quadrant-3 Monitor
+    quadrant-4 Keep Informed
+    Ban lanh dao/Ban giam doc: [0.85, 0.9]
+    Nhan vien van hanh: [0.75, 0.55]
+    Khach hang: [0.8, 0.25]
+    Tai xe: [0.78, 0.2]
+    Nha cung cap thanh toan: [0.3, 0.55]
+```
 
-| Mức độ Quyền lực / Quan tâm | Quan tâm Thấp (Low Interest) | Quan tâm Cao (High Interest) |
-| --- | --- | --- |
-| **Quyền lực Cao (High Power)** | **Nhà cung cấp thanh toán bên ngoài**<br>
 
-<br>*(Tích hợp API, ít can thiệp nội bộ hệ thống)* | **Ban lãnh đạo / Ban giám đốc**<br>
-
-<br>*(Quyết định ngân sách, mục tiêu, chiến lược dài hạn)* |
-| **Quyền lực Thấp (Low Interest)** | **Nhóm phát triển phần mềm**<br>
-
-<br>*(Thực thi theo yêu cầu kỹ thuật và tài liệu BA)* | **Khách hàng, Tài xế, Nhân viên vận hành, BA**<br>
-
-<br>*(Người sử dụng trực tiếp và người chịu trách nhiệm phân tích, vận hành)* |
-
----
 
 ## 3. Sơ đồ Quan hệ giữa các Stakeholder (Stakeholder Relationship Diagram)
 
