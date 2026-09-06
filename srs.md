@@ -17,7 +17,23 @@ Hệ thống cung cấp giải pháp kết nối giữa khách hàng có nhu c�
 * **Khách hàng:** Người sử dụng dịch vụ đặt xe, theo dõi chuyến đi, thanh toán và đánh giá.
 * **Tài xế:** Người cung cấp dịch vụ vận chuyển, nhận chuyến, cập nhật trạng thái và vị trí GPS.
 * **Nhân viên vận hành (Admin):** Quản lý tài khoản, theo dõi hệ thống, xử lý sự cố và xem báo cáo.
-
+###2.2 Sơ đồ Statkhoder matrix
+```mermaid
+quadrantChart
+    title Biểu đồ Phân tích Stakeholder (Power/Interest Grid)
+    x-axis "Mức độ quan tâm thấp" --> "Mức độ quan tâm cao"
+    y-axis "Mức độ ảnh hưởng thấp" --> "Mức độ ảnh hưởng cao"
+    quadrant-1 "Giữ thông tin (Keep Informed)"
+    quadrant-2 "Quản lý chặt chẽ (Manage Closely)"
+    quadrant-3 "Giám sát (Monitor)"
+    quadrant-4 "Giữ sự hài lòng (Keep Satisfied)"
+    
+    Ban lãnh đạo / Ban giám đốc: [0.85, 0.85]
+    Nhân viên vận hành: [0.80, 0.55]
+    Khách hàng (Customer / Passenger): [0.90, 0.25]
+    Tài xế (Driver): [0.85, 0.20]
+    Nhà cung cấp thanh toán: [0.20, 0.15]
+```
 ### 2.2 Sơ đồ tổng quan hệ thống (Use Case / Context Diagram)
 Dưới đây là sơ đồ Mermaid thể hiện tương tác giữa các tác nhân và hệ thống CAB:
 
@@ -44,7 +60,6 @@ mindmap
       Theo dõi chuyến đi & xử lý sự cố
 
       Phân quyền truy cập (giới hạn thao tác nhạy cảm)
-
 
 
     Khách hàng (Customer/Passenger)
@@ -77,5 +92,7 @@ mindmap
 
       Xử lý giao dịch thanh toán điện tử an toàn
 
-      Bảo mật (không lưu thông tin nhạy cảm thẻ trong hệ thống CAB) 
+      Bảo mật (không lưu thông tin nhạy cảm thẻ trong hệ thống CAB)
+```
+2.3
 
