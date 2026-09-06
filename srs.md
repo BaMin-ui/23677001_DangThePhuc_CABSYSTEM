@@ -23,13 +23,6 @@ Dựa trên ngữ cảnh dự án xây dựng hệ thống **CAB System** trong 
 * **Nhà cung cấp thanh toán bên ngoài (Third-party Payment Gateway):** Xử lý giao dịch thanh toán điện tử.
 
 
-* **Nhóm phát triển phần mềm (Development Team):** Xây dựng, kiểm thử và triển khai nền tảng CAB trong 7 tuần.
-
-
-* **Chuyên viên phân tích nghiệp vụ (Business Analyst - BA):** Khảo sát, làm rõ yêu cầu còn thiếu và thiết kế tài liệu giải pháp.
-
-
-
 ---
 
 ## 2. Ma trận Stakeholder (Stakeholder Matrix - Power/Interest Grid)
