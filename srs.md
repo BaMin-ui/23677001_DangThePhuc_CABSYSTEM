@@ -10,6 +10,13 @@ Tài liệu này mô tả chi tiết các yêu cầu chức năng và phi chức
 ### 1.2 Phạm vi hệ thống
 Hệ thống cung cấp giải pháp kết nối giữa khách hàng có nhu cầu di chuyển và tài xế, đồng thời cung cấp công cụ quản trị toàn diện cho nhân viên vận hành. Hệ thống hỗ trợ quy trình khép kín từ đặt xe, điều phối tự động, thực hiện chuyến đi, thanh toán, đến đánh giá và báo cáo.
 
+### 1.3 Mục tiêu kinh doanh (Business Goals)
+* **Mở rộng quy mô và khả năng phục vụ (Scalability):** Xây dựng nền tảng vận hành ổn định, chịu tải tốt vào giờ cao điểm, dễ dàng mở rộng tính năng và loại dịch vụ mới trong tương lai.
+* **Tối ưu hóa hiệu quả điều phối (Operational Efficiency):** Tự động hóa tìm kiếm và phân công tài xế qua GPS, giảm thời gian chờ và tối ưu hiệu suất tài xế.
+* **Nâng cao trải nghiệm người dùng (User Experience):** Đem lại giao diện trực quan và quy trình liền mạch cho khách hàng, tài xế và nhân viên vận hành từ đặt xe, theo dõi hành trình đến thanh toán.
+* **Đảm bảo an toàn và bảo mật (Security & Compliance):** Kiểm soát quyền hạn nghiêm ngặt, bảo vệ dữ liệu cá nhân/vị trí/giao dịch và tích hợp cổng thanh toán bên thứ ba an toàn không lưu thông tin thẻ nhạy cảm.
+* **Ra quyết định dựa trên dữ liệu (Data-Driven Insights):** Cung cấp hệ thống báo cáo trực quan về doanh thu, số lượng chuyến, tỷ lệ hoàn thành/hủy và hiệu quả tài xế cho ban lãnh đạo.
+
 ---
 
 ## 2. Mô tả tổng quan
@@ -20,9 +27,10 @@ Hệ thống cung cấp giải pháp kết nối giữa khách hàng có nhu c�
 * **Nhân viên vận hành (Operations Staff):** Bộ phận quản trị hệ thống chịu trách nhiệm thực thi các tác vụ vận hành hàng ngày, giám sát các chuyến đi đang diễn ra, hỗ trợ xử lý sự cố, quản lý tài khoản người dùng và kiểm soát phân quyền đối với các thao tác nhạy cảm.
 * **Ban lãnh đạo / Ban giám đốc (Management):** Nhóm người ra quyết định chiến lược và phê duyệt dự án, quan tâm đến khả năng mở rộng kiến trúc, tối ưu hóa doanh thu và theo dõi hệ thống báo cáo vận hành tổng quan (số lượng chuyến, tỷ lệ hoàn thành, tỷ lệ hủy và hiệu quả hoạt động của tài xế). *(Đóng vai trò tác nhân định hướng và giám sát cao nhất trên hệ thống)*.
 * **Nhà cung cấp thanh toán bên ngoài (Payment Gateway Provider):** Hệ thống/đối tác tích hợp bên thứ ba chịu trách nhiệm xử lý các giao dịch thanh toán điện tử an toàn, đảm bảo nguyên tắc không lưu trữ thông tin nhạy cảm của thẻ trực tiếp trong hệ thống CAB.
-### 2.2 stakeholder matrix
-quadrantChart
 
+### 2.2 Stakeholder Matrix & Phân tích
+```mermaid
+quadrantChart
     title Biểu đồ Phân tích Stakeholder (Power/Interest Grid)
     x-axis "Mức độ quan tâm (Interest): Thấp" --> "Cao"
     y-axis "Mức độ ảnh hưởng (Power): Thấp" --> "Cao"
@@ -36,38 +44,3 @@ quadrantChart
     "Khách hàng (Customer / Passenger)": [0.85, 0.25]
     "Tài xế (Driver)": [0.85, 0.20]
     "Nhà cung cấp thanh toán": [0.2, 0.15]
-### 2.3 Sơ đồ tổng quan hệ thống (Use Case / Context Diagram)
-Dưới đây là sơ đồ Mermaid thể hiện tương tác giữa các tác nhân và hệ thống CAB:
-
-```mermaid
-mindmap
-  root((Stakeholders<br/>CAB System))
-  
-    Ban lãnh đạo / Ban giám đốc
-      Người ra quyết định, phê duyệt dự án
-      Quan tâm khả năng mở rộng hệ thống
-      Theo dõi doanh thu & báo cáo vận hành
-      Đánh giá tỷ lệ chuyến hoàn thành/hủy & hiệu quả tài xế
-
-    Nhân viên vận hành
-      Thực thi các thao tác quản trị hàng ngày
-      Theo dõi chuyến đi & xử lý sự cố
-      Phân quyền truy cập (giới hạn thao tác nhạy cảm)
-
-    Khách hàng (Customer/Passenger)
-      Người dùng cuối đặt xe trực tuyến
-      Trải nghiệm đặt xe (chọn điểm đi/đến, loại xe)
-      Theo dõi thời gian thực & vị trí tài xế
-      Thanh toán cước phí & đánh giá tài xế
-
-    Tài xế (Driver)
-      Người dùng cuối cung cấp dịch vụ vận chuyển
-      Quản lý hồ sơ, phương tiện & trạng thái sẵn sàng
-      Nhận/từ chối chuyến & cập nhật trạng thái chuyến đi
-      Truyền dữ liệu định vị GPS thời gian thực
-
-    Nhà cung cấp thanh toán bên ngoài
-      Đối tác tích hợp bên thứ ba
-      Xử lý giao dịch thanh toán điện tử an toàn
-      Bảo mật (không lưu thông tin nhạy cảm thẻ trong hệ thống CAB)
-
