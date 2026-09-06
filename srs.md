@@ -249,36 +249,59 @@ Requested → Accepted → Driver Arrived → In Progress → Completed
 ---
 ###8. Quy Tắc Nghiệp Vụ (Business Rules) — Hệ Thống Gọi Xe Công Nghệ (CAB)
 
-Tài liệu tổng hợp các quy tắc nghiệp vụ rút ra từ Sequence Diagram hệ thống CAB, tổ chức theo 4 module chức năng.
+    # Quy Tắc Nghiệp Vụ (Business Rules) — Hệ Thống Gọi Xe Công Nghệ (CAB)
 
-1. Quy Tắc — Đặt Xe & Điều Phối Tài Xế
-Mã	Quy tắc
-BR1.1	Khách hàng phải nhập đầy đủ điểm đón, điểm đến và loại dịch vụ xe trước khi hệ thống thực hiện tìm tài xế.
-BR1.2	Hệ thống chỉ tìm tài xế đang ở trạng thái "rảnh" (available) và gần vị trí đón nhất theo bán kính/khoảng cách quy định.
-BR1.3	Yêu cầu chuyến đi chỉ được gửi cho một tài xế tại một thời điểm (không gửi đồng loạt broadcast), theo thứ tự ưu tiên gần nhất.
-BR1.4	Nếu tài xế từ chối hoặc không phản hồi trong thời gian timeout quy định, hệ thống tự động chuyển yêu cầu sang tài xế kế tiếp trong danh sách.
-BR1.5	Nếu không còn tài xế phù hợp nào trong hệ thống, phải thông báo cho khách hàng biết không tìm được tài xế — không được để khách chờ vô thời hạn.
-BR1.6	Khi tài xế chấp nhận chuyến, hệ thống phải cập nhật trạng thái tài xế thành "đang bận" để tránh bị gán thêm chuyến khác.
-BR1.7	Khách hàng chỉ nhận được thông báo ETA sau khi có tài xế xác nhận chấp nhận chuyến.
-2. Quy Tắc — Quản Lý Hành Trình (Trip Lifecycle)
-Mã	Quy tắc
-BR2.1	Trạng thái chuyến đi phải tuân theo đúng trình tự tuyến tính, không được nhảy cóc bước: Accepted → Driver Arrived → In Progress → Completed.
-BR2.2	Chỉ tài xế mới có quyền cập nhật trạng thái hành trình (đến điểm đón, đón khách, hoàn thành); khách hàng chỉ nhận thông báo, không thao tác thay đổi trạng thái.
-BR2.3	Mỗi lần trạng thái chuyến đi thay đổi, hệ thống phải đẩy thông báo real-time tới khách hàng tương ứng.
-BR2.4	Chuyến đi chỉ được coi là "Hoàn thành" khi tài xế xác nhận, làm điều kiện tiên quyết để bước sang giai đoạn tính cước.
-BR2.5	(Đề xuất bổ sung) Cho phép hủy chuyến ở các trạng thái trước "In Progress"; cần quy định rõ điều kiện phí hủy (nếu có).
-3. Quy Tắc — Tính Cước & Thanh Toán
-Mã	Quy tắc
-BR3.1	Cước phí chỉ được tính sau khi chuyến đi đã hoàn thành, dựa trên loại dịch vụ và quãng đường di chuyển thực tế.
-BR3.2	Số tiền phải trả phải được hiển thị cho khách hàng trước khi xác nhận hình thức thanh toán.
-BR3.3	Khách hàng được lựa chọn một trong hai hình thức: tiền mặt hoặc thanh toán điện tử — không bắt buộc hình thức cụ thể.
-BR3.4	Với thanh toán tiền mặt: giao dịch chỉ được xem là hoàn tất khi tài xế xác nhận đã nhận tiền vào hệ thống.
-BR3.5	Với thanh toán điện tử: hệ thống phải gọi API cổng thanh toán và chỉ ghi nhận hoàn tất chuyến khi giao dịch thành công.
-BR3.6	Nếu giao dịch điện tử thất bại, hệ thống phải báo lỗi cho khách và cho phép thử lại thanh toán — không được tự động hủy chuyến hoặc chuyển sang tiền mặt mà không có xác nhận từ khách.
-BR3.7	(Đề xuất bổ sung) Cần giới hạn số lần retry thanh toán thất bại và quy trình xử lý khi vượt giới hạn (chuyển tiền mặt bắt buộc, khóa tài khoản...).
-4. Quy Tắc — Đánh Giá & Báo Cáo Vận Hành
-Mã	Quy tắc
-BR4.1	Khách hàng chỉ được đánh giá tài xế/chuyến đi sau khi đã hoàn tất thanh toán.
-BR4.2	Mọi dữ liệu chuyến đi (hành trình, cước phí, thanh toán, đánh giá) phải được lưu trữ đầy đủ phục vụ tra cứu và báo cáo.
-BR4.3	Báo cáo doanh thu/vận hành phải được cập nhật tự động sau mỗi chuyến hoàn tất, không cần thao tác thủ công từ nhân viên vận hành.
-BR4.4	(Đề xuất bổ sung) Cần quy định đánh giá có bắt buộc hay không, và cơ chế xử lý khi khách không đánh giá (auto-rating mặc định, nhắc lại...).
+> Tài liệu tổng hợp các quy tắc nghiệp vụ rút ra từ Sequence Diagram hệ thống CAB, tổ chức theo 4 module chức năng.
+
+---
+
+## 1. Quy Tắc — Đặt Xe & Điều Phối Tài Xế
+
+| Mã | Quy tắc |
+|----|---------|
+| BR1.1 | Khách hàng phải nhập đầy đủ **điểm đón, điểm đến và loại dịch vụ xe** trước khi hệ thống thực hiện tìm tài xế. |
+| BR1.2 | Hệ thống chỉ tìm tài xế đang ở trạng thái **"rảnh" (available)** và **gần vị trí đón nhất** theo bán kính/khoảng cách quy định. |
+| BR1.3 | Yêu cầu chuyến đi chỉ được gửi cho **một tài xế tại một thời điểm** (không gửi đồng loạt broadcast), theo thứ tự ưu tiên gần nhất. |
+| BR1.4 | Nếu tài xế **từ chối** hoặc **không phản hồi trong thời gian timeout quy định**, hệ thống tự động chuyển yêu cầu sang tài xế kế tiếp trong danh sách. |
+| BR1.5 | Nếu **không còn tài xế phù hợp** nào trong hệ thống, phải thông báo cho khách hàng biết không tìm được tài xế — không được để khách chờ vô thời hạn. |
+| BR1.6 | Khi tài xế **chấp nhận chuyến**, hệ thống phải cập nhật trạng thái tài xế thành **"đang bận"** để tránh bị gán thêm chuyến khác. |
+| BR1.7 | Khách hàng chỉ nhận được thông báo **ETA** sau khi có tài xế xác nhận chấp nhận chuyến. |
+
+---
+
+## 2. Quy Tắc — Quản Lý Hành Trình (Trip Lifecycle)
+
+| Mã | Quy tắc |
+|----|---------|
+| BR2.1 | Trạng thái chuyến đi phải tuân theo đúng trình tự tuyến tính, **không được nhảy cóc bước**: `Accepted → Driver Arrived → In Progress → Completed`. |
+| BR2.2 | Chỉ **tài xế** mới có quyền cập nhật trạng thái hành trình (đến điểm đón, đón khách, hoàn thành); khách hàng chỉ nhận thông báo, không thao tác thay đổi trạng thái. |
+| BR2.3 | Mỗi lần trạng thái chuyến đi thay đổi, hệ thống **phải đẩy thông báo real-time** tới khách hàng tương ứng. |
+| BR2.4 | Chuyến đi chỉ được coi là **"Hoàn thành"** khi tài xế xác nhận, làm điều kiện tiên quyết để bước sang giai đoạn tính cước. |
+| BR2.5 | *(Đề xuất bổ sung)* Cho phép hủy chuyến ở các trạng thái trước "In Progress"; cần quy định rõ điều kiện phí hủy (nếu có). |
+
+---
+
+## 3. Quy Tắc — Tính Cước & Thanh Toán
+
+| Mã | Quy tắc |
+|----|---------|
+| BR3.1 | Cước phí chỉ được tính **sau khi chuyến đi đã hoàn thành**, dựa trên loại dịch vụ và quãng đường di chuyển thực tế. |
+| BR3.2 | Số tiền phải trả phải được **hiển thị cho khách hàng trước khi xác nhận hình thức thanh toán**. |
+| BR3.3 | Khách hàng được lựa chọn **một trong hai hình thức**: tiền mặt hoặc thanh toán điện tử — không bắt buộc hình thức cụ thể. |
+| BR3.4 | Với thanh toán tiền mặt: giao dịch chỉ được xem là hoàn tất khi **tài xế xác nhận đã nhận tiền** vào hệ thống. |
+| BR3.5 | Với thanh toán điện tử: hệ thống phải gọi API cổng thanh toán và **chỉ ghi nhận hoàn tất chuyến khi giao dịch thành công**. |
+| BR3.6 | Nếu giao dịch điện tử **thất bại**, hệ thống phải báo lỗi cho khách và **cho phép thử lại thanh toán** — không được tự động hủy chuyến hoặc chuyển sang tiền mặt mà không có xác nhận từ khách. |
+| BR3.7 | *(Đề xuất bổ sung)* Cần giới hạn số lần retry thanh toán thất bại và quy trình xử lý khi vượt giới hạn (chuyển tiền mặt bắt buộc, khóa tài khoản...). |
+
+---
+
+## 4. Quy Tắc — Đánh Giá & Báo Cáo Vận Hành
+
+| Mã | Quy tắc |
+|----|---------|
+| BR4.1 | Khách hàng chỉ được đánh giá tài xế/chuyến đi **sau khi đã hoàn tất thanh toán**. |
+| BR4.2 | Mọi dữ liệu chuyến đi (hành trình, cước phí, thanh toán, đánh giá) phải được **lưu trữ đầy đủ** phục vụ tra cứu và báo cáo. |
+| BR4.3 | Báo cáo doanh thu/vận hành phải được **cập nhật tự động** sau mỗi chuyến hoàn tất, không cần thao tác thủ công từ nhân viên vận hành. |
+| BR4.4 | *(Đề xuất bổ sung)* Cần quy định đánh giá có bắt buộc hay không, và cơ chế xử lý khi khách không đánh giá (auto-rating mặc định, nhắc lại...). |
+
+---
