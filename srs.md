@@ -122,8 +122,6 @@ mindmap
 ### 3.4 Nhóm yêu cầu thanh toán & Cước phí (Billing & Payment)
 * **BR-PAY-01 (Tính cước tự động):** Hệ thống phải tự động tính toán tổng số tiền cước mà khách hàng phải trả dựa trên loại dịch vụ và các thông số thực tế của chuyến đi.
 * **BR-PAY-02 (Phương thức thanh toán linh hoạt):** Hỗ trợ hình thức thanh toán bằng tiền mặt hoặc qua cổng thanh toán điện tử tích hợp từ bên thứ ba.
-* **BR-PAY-03 (Bảo mật thông tin tài chính):** Hệ thống CAB tuyệt đối không được lưu trữ thông tin nhạy cảm của thẻ hoặc tài khoản thanh toán trực tiếp trên cơ sở dữ liệu nội bộ.
-* **BR-PAY-04 (Xử lý giao dịch lỗi):** Khi giao dịch thanh toán điện tử thất bại, hệ thống phải thông báo kịp thời cho khách hàng và cung cấp cơ chế xử lý lại theo đúng chính sách nghiệp vụ của doanh nghiệp.
 
 ### 3.5 Nhóm yêu cầu thông báo (Notification System)
 * **BR-NOT-01 (Thông báo đa chiều):** Hệ thống phải gửi thông báo tự động cho Khách hàng (khi tiếp nhận yêu cầu, có tài xế nhận, tài xế đến, hoàn thành chuyến, kết quả thanh toán) và cho Tài xế (khi có chuyến mới hoặc thay đổi liên quan).
