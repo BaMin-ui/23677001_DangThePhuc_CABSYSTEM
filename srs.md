@@ -22,7 +22,7 @@ Hệ thống cung cấp giải pháp kết nối giữa khách hàng có nhu c�
 * **Nhà cung cấp thanh toán bên ngoài (Payment Gateway Provider):** Hệ thống/đối tác tích hợp bên thứ ba chịu trách nhiệm xử lý các giao dịch thanh toán điện tử an toàn, đảm bảo nguyên tắc không lưu trữ thông tin nhạy cảm của thẻ trực tiếp trong hệ thống CAB.
 ### 2.2 stakeholder matrix
 quadrantChart
-```mermaid
+
     title Biểu đồ Phân tích Stakeholder (Power/Interest Grid)
     x-axis "Mức độ quan tâm (Interest): Thấp" --> "Cao"
     y-axis "Mức độ ảnh hưởng (Power): Thấp" --> "Cao"
@@ -39,7 +39,7 @@ quadrantChart
 ### 2.3 Sơ đồ tổng quan hệ thống (Use Case / Context Diagram)
 Dưới đây là sơ đồ Mermaid thể hiện tương tác giữa các tác nhân và hệ thống CAB:
 
-```mermaid
+mermaid
 mindmap
   root((Stakeholders<br/>CAB System))
   
@@ -70,3 +70,4 @@ mindmap
       Đối tác tích hợp bên thứ ba
       Xử lý giao dịch thanh toán điện tử an toàn
       Bảo mật (không lưu thông tin nhạy cảm thẻ trong hệ thống CAB)
+
