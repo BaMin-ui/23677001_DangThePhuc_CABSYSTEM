@@ -7,7 +7,7 @@ Dưới đây là tài liệu phân tích hệ thống **CAB System (Nền tản
 ## 1. Stakeholder Matrix (Power – Interest Grid)
 
 | Stakeholder | Power (Quyền lực/Ảnh hưởng) | Interest (Mức độ quan tâm) | Vai trò chính |
-|---|---|---|---|---|
+|---|---|---|---|
 | Ban lãnh đạo / Ban giám đốc | Cao | Cao |  Ra quyết định, phê duyệt dự án, theo dõi doanh thu & hiệu quả vận hành |
 | Nhân viên vận hành | Trung bình | Cao |  Thực thi thao tác quản trị hàng ngày, xử lý sự cố |
 | Khách hàng (Customer/Passenger) | Thấp | Cao | Người dùng cuối đặt xe, trải nghiệm dịch vụ |
