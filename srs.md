@@ -20,8 +20,22 @@ Hệ thống cung cấp giải pháp kết nối giữa khách hàng có nhu c�
 * **Nhân viên vận hành (Operations Staff):** Bộ phận quản trị hệ thống chịu trách nhiệm thực thi các tác vụ vận hành hàng ngày, giám sát các chuyến đi đang diễn ra, hỗ trợ xử lý sự cố, quản lý tài khoản người dùng và kiểm soát phân quyền đối với các thao tác nhạy cảm.
 * **Ban lãnh đạo / Ban giám đốc (Management):** Nhóm người ra quyết định chiến lược và phê duyệt dự án, quan tâm đến khả năng mở rộng kiến trúc, tối ưu hóa doanh thu và theo dõi hệ thống báo cáo vận hành tổng quan (số lượng chuyến, tỷ lệ hoàn thành, tỷ lệ hủy và hiệu quả hoạt động của tài xế). *(Đóng vai trò tác nhân định hướng và giám sát cao nhất trên hệ thống)*.
 * **Nhà cung cấp thanh toán bên ngoài (Payment Gateway Provider):** Hệ thống/đối tác tích hợp bên thứ ba chịu trách nhiệm xử lý các giao dịch thanh toán điện tử an toàn, đảm bảo nguyên tắc không lưu trữ thông tin nhạy cảm của thẻ trực tiếp trong hệ thống CAB.
-
-### 2.2 Sơ đồ tổng quan hệ thống (Use Case / Context Diagram)
+### 2.2 stakeholder matrix
+quadrantChart
+    title Biểu đồ Phân tích Stakeholder (Power/Interest Grid)
+    x-axis "Mức độ quan tâm (Interest): Thấp" --> "Cao"
+    y-axis "Mức độ ảnh hưởng (Power): Thấp" --> "Cao"
+    quadrant-1 "Quản lý chặt chẽ (Manage Closely)"
+    quadrant-2 "Giữ sự hài lòng (Keep Satisfied)"
+    quadrant-3 "Giám sát (Monitor)"
+    quadrant-4 "Giữ thông tin (Keep Informed)"
+    
+    "Ban lãnh đạo / Ban giám đốc": [0.8, 0.85]
+    "Nhân viên vận hành": [0.8, 0.55]
+    "Khách hàng (Customer / Passenger)": [0.85, 0.25]
+    "Tài xế (Driver)": [0.85, 0.20]
+    "Nhà cung cấp thanh toán": [0.2, 0.15]
+### 2.3 Sơ đồ tổng quan hệ thống (Use Case / Context Diagram)
 Dưới đây là sơ đồ Mermaid thể hiện tương tác giữa các tác nhân và hệ thống CAB:
 
 ```mermaid
