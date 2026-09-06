@@ -1,215 +1,183 @@
-# CAB System – Phân tích Stakeholder & Business Requirement
-
-> Dự án: Xây dựng nền tảng đặt xe trực tuyến CAB System — Công ty ABC
+Dưới đây là tài liệu phân tích hệ thống **CAB System (Nền tảng đặt xe)** được trình bày hoàn toàn bằng định dạng Markdown của GitHub, bao gồm sơ đồ Stakeholder Matrix, sơ đồ quan hệ Stakeholder, Mục tiêu kinh doanh (Business Goals), Yêu cầu kinh doanh (Business Requirements) và Mô hình quy trình nghiệp vụ được vẽ bằng mã **Mermaid**.
 
 ---
 
-## 1. Stakeholder Matrix (Power – Interest Grid)
+# BÁO CÁO PHÂN TÍCH HỆ THỐNG: CAB SYSTEM
 
-| Stakeholder | Power (Quyền lực/Ảnh hưởng) | Interest (Mức độ quan tâm) | Chiến lược quản lý | Vai trò chính |
-|---|---|---|---|---|
-| Ban lãnh đạo / Ban giám đốc | Cao | Cao | **Manage Closely** – quản lý sát sao | Ra quyết định, phê duyệt dự án, theo dõi doanh thu & hiệu quả vận hành |
-| Nhân viên vận hành | Trung bình | Cao | **Keep Informed / Involve** – giữ liên hệ chặt | Thực thi thao tác quản trị hàng ngày, xử lý sự cố |
-| Khách hàng (Customer/Passenger) | Thấp | Cao | **Keep Informed** – thông tin đầy đủ, thường xuyên | Người dùng cuối đặt xe, trải nghiệm dịch vụ |
-| Tài xế (Driver) | Thấp | Cao | **Keep Informed** – thông tin đầy đủ, thường xuyên | Người dùng cuối cung cấp dịch vụ vận chuyển |
-| Nhà cung cấp thanh toán bên ngoài | Trung bình | Thấp | **Keep Satisfied** – đảm bảo hài lòng, tuân thủ hợp đồng/bảo mật | Đối tác xử lý giao dịch thanh toán điện tử |
+## 1. Xác định Các Bên Liên Quan (Stakeholder Identification)
 
-### Biểu đồ ma trận (Mermaid Quadrant Chart)
+Dựa trên ngữ cảnh dự án xây dựng hệ thống **CAB System** trong vòng 7 tuần, các bên liên quan được xác định và phân nhóm như sau:
 
-```mermaid
-quadrantChart
-    title Stakeholder Matrix - Power vs Interest
-    x-axis Low Interest --> High Interest
-    y-axis Low Power --> High Power
-    quadrant-1 Manage Closely
-    quadrant-2 Keep Satisfied
-    quadrant-3 Monitor
-    quadrant-4 Keep Informed
-    Ban lanh dao/Ban giam doc: [0.85, 0.9]
-    Nhan vien van hanh: [0.75, 0.55]
-    Khach hang: [0.8, 0.25]
-    Tai xe: [0.78, 0.2]
-    Nha cung cap thanh toan: [0.3, 0.55]
-```
+* **Khách hàng (Customer):** Người sử dụng dịch vụ đặt xe, theo dõi hành trình và thực hiện thanh toán.
+
+
+* **Tài xế (Driver):** Người cung cấp dịch vụ vận chuyển, nhận chuyến, cập nhật trạng thái chuyến đi và vị trí.
+
+
+* **Nhân viên vận hành (Operations Staff):** Quản lý tài xế, phương tiện, khách hàng, xử lý sự cố chuyến đi và tra cứu giao dịch.
+
+
+* **Ban lãnh đạo / Ban giám đốc (Management / Executive Board):** Định hướng chiến lược, phê duyệt ngân sách, yêu cầu báo cáo doanh thu, hiệu suất hệ thống.
+
+
+* **Nhà cung cấp thanh toán bên ngoài (Third-party Payment Gateway):** Xử lý giao dịch thanh toán điện tử.
+
+
+## 2. Ma trận Stakeholder (Stakeholder Matrix - Power/Interest Grid)
+
+Ma trận dưới đây phân loại các bên liên quan dựa trên mức độ quyền lực (Power) và mức độ quan tâm (Interest) đối với dự án CAB System:
+
+| Mức độ Quyền lực / Quan tâm | Quan tâm Thấp (Low Interest) | Quan tâm Cao (High Interest) |
+| --- | --- | --- |
+| **Quyền lực Cao (High Power)** | **Nhà cung cấp thanh toán bên ngoài**<br>
+
+<br>*(Tích hợp API, ít can thiệp nội bộ hệ thống)* | **Ban lãnh đạo / Ban giám đốc**<br>
+
+<br>*(Quyết định ngân sách, mục tiêu, chiến lược dài hạn)* |
+| **Quyền lực Thấp (Low Interest)** | **Nhóm phát triển phần mềm**<br>
+
+<br>*(Thực thi theo yêu cầu kỹ thuật và tài liệu BA)* | **Khách hàng, Tài xế, Nhân viên vận hành, BA**<br>
+
+<br>*(Người sử dụng trực tiếp và người chịu trách nhiệm phân tích, vận hành)* |
 
 ---
 
-## 2. Sơ đồ quan hệ giữa các Stakeholder
+## 3. Sơ đồ Quan hệ giữa các Stakeholder (Stakeholder Relationship Diagram)
+
+Sơ đồ Mermaid thể hiện mối quan hệ và sự tương tác giữa các bên liên quan trong hệ sinh thái CAB System:
 
 ```mermaid
 graph TD
-    CAB((CAB System))
-    BLD["Ban lãnh đạo /<br/>Ban giám đốc"]
-    NVH["Nhân viên<br/>vận hành"]
-    KH["Khách hàng<br/>(Passenger)"]
-    TX["Tài xế<br/>(Driver)"]
-    NCC["Nhà cung cấp<br/>thanh toán bên ngoài"]
+    %% Định nghĩa các node Stakeholder
+    BLD[Ban lãnh đạo / Giám đốc]
+    
+    KH[Khách hàng] -->|Đặt xe & Thanh toán| CAB[CAB System Platform]
+    TX[Tài xế] -->|Nhận chuyến & Cập nhật trạng thái| CAB
+    NVV[Nhân viên vận hành] -->|Quản lý & Hỗ trợ| CAB
+    
+    CAB -->|Xử lý giao dịch điện tử| TT[Nhà cung cấp thanh toán ngoài]
+    
+    BLD -->|Xem báo cáo hiệu suất| CAB
+    NVV -->|Xem báo cáo vận hành| CAB
 
-    BLD -->|"Phê duyệt & định hướng chiến lược"| CAB
-    BLD -->|"Xem báo cáo doanh thu, vận hành"| NVH
-    NVH -->|"Quản trị tài khoản, phương tiện"| KH
-    NVH -->|"Quản trị hồ sơ, giám sát trạng thái"| TX
-    NVH -->|"Xử lý sự cố chuyến đi"| CAB
+    style CAB fill:#f9f,stroke:#333,stroke-width:2px
+    style BA fill:#bbf,stroke:#333,stroke-width:1px
 
-    KH -->|"Gửi yêu cầu đặt xe, thanh toán"| CAB
-    CAB -->|"Thông báo trạng thái chuyến"| KH
-    TX -->|"Nhận/từ chối chuyến, cập nhật vị trí GPS"| CAB
-    CAB -->|"Thông báo yêu cầu chuyến mới"| TX
-
-    CAB -->|"Yêu cầu xử lý giao dịch"| NCC
-    NCC -->|"Kết quả giao dịch thanh toán"| CAB
-
-    KH -.->|"Đánh giá tài xế sau chuyến"| TX
 ```
 
-**Ghi chú quan hệ:**
-- **Ban lãnh đạo → Nhân viên vận hành**: giao chỉ tiêu, nhận báo cáo.
-- **Nhân viên vận hành ↔ Khách hàng/Tài xế**: giám sát, hỗ trợ, xử lý sự cố, phân quyền thao tác nhạy cảm.
-- **Khách hàng ↔ Tài xế**: kết nối qua hệ thống (matching), tương tác đánh giá sau chuyến.
-- **CAB System ↔ Nhà cung cấp thanh toán**: tích hợp bên thứ ba, không lưu thông tin thẻ nhạy cảm trong hệ thống CAB.
+---
+
+## 4. Mục tiêu Kinh doanh (Business Goals)
+
+Dựa trên yêu cầu của Công ty ABC, các mục tiêu chiến lược của hệ thống CAB System gồm:
+
+1. **Mở rộng quy mô phục vụ:** Xây dựng nền tảng mới có khả năng phục vụ số lượng lớn khách hàng và tài xế đồng thời, khắc phục tình trạng phân công thủ công hiện tại.
+
+
+2. **Tối ưu hóa quy trình vận hành:** Tự động hóa khâu tìm kiếm và phân phối tài xế dựa trên vị trí, trạng thái sẵn sàng, giảm thiểu can thiệp thủ công của nhân viên.
+
+
+3. **Minh bạch hóa trải nghiệm người dùng:** Cho phép khách hàng theo dõi thời gian thực trạng thái chuyến đi, định vị tài xế, xem lịch sử và đánh giá minh bạch.
+
+
+4. **Đảm bảo an toàn thanh toán:** Tích hợp cổng thanh toán bên ngoài để xử lý giao dịch điện tử và tiền mặt linh hoạt mà không lưu trữ thông tin thẻ nhạy cảm.
+
+
+5. **Kiến trúc linh hoạt, dễ mở rộng:** Hỗ trợ mở rộng độc lập các thành phần (thanh toán, thông báo, dịch vụ mới) khi tải tăng cao hoặc khi thay đổi nghiệp vụ trong tương lai.
+
+
+## 5. Yêu cầu Kinh doanh (Business Requirements)
+
+### 5.1. Yêu cầu Chức năng (Functional Requirements)
+
+* **Quản lý tài khoản & Xác thực:** Hỗ trợ đăng ký, đăng nhập, phân quyền cho Khách hàng, Tài xế và Nhân viên vận hành.
+
+
+* **Đặt xe & Tìm tài xế:** Khách hàng nhập điểm đi/đến, chọn loại xe; hệ thống tự động thuật toán tìm tài xế gần nhất, có cơ chế chuyển tiếp nếu tài xế từ chối/không phản hồi.
+
+
+* **Quản lý chuyến đi:** Tài xế cập nhật các mốc trạng thái (đến điểm đón, đón khách, đang di chuyển, hoàn thành); lưu vết vị trí tài xế.
+
+
+* **Tính cước & Thanh toán:** Tự động tính cước dựa trên loại dịch vụ và thông tin chuyến đi; hỗ trợ tiền mặt và thanh toán điện tử qua bên thứ ba.
+
+
+* **Hệ thống thông báo:** Gửi thông báo đa kênh (trạng thái đặt xe, tài xế đến, hoàn thành, kết quả thanh toán) cho cả khách hàng và tài xế.
+
+
+* **Quản trị & Báo cáo:** Giao diện cho nhân viên vận hành quản lý dữ liệu và xử lý sự cố; cung cấp báo cáo doanh thu, tỷ lệ hoàn thành/hủy chuyến cho ban lãnh đạo.
+
+
+
+### 5.2. Yêu cầu Phi Chức năng (Non-Functional Requirements)
+
+* **Hiệu năng & Khả năng mở rộng:** Hệ thống ổn định vào giờ cao điểm; các thành phần có thể mở rộng độc lập khi tải tăng.
+
+
+* **Bảo mật:** Xác thực chặt chẽ, kiểm soát quyền truy cập trang quản trị; bảo vệ dữ liệu cá nhân, vị trí, giao dịch và lưu vết (audit log) các thao tác quan trọng.
+
+
+* **Tính linh hoạt kiến trúc:** Cho phép triển khai từng phần tính năng mới mà không làm gián đoạn các dịch vụ đang hoạt động.
+
+
 
 ---
 
-## 3. Business Goals
+## 6. Mô hình Quy trình Nghiệp vụ (Business Process Model)
 
-| # | Business Goal |
-|---|---|
-| BG1 | Xây dựng nền tảng đặt xe hiện đại thay thế mô hình tổng đài/ứng dụng thủ công hiện tại |
-| BG2 | Tự động hóa việc phân công/tìm tài xế, giảm thao tác thủ công |
-| BG3 | Tăng khả năng mở rộng để phục vụ số lượng lớn khách hàng và tài xế, đồng thời dễ dàng bổ sung tính năng trong tương lai |
-| BG4 | Tăng tính minh bạch cho khách hàng: theo dõi chuyến đi và vị trí tài xế theo thời gian thực |
-| BG5 | Quản lý và xử lý thanh toán tập trung, an toàn, không lưu thông tin nhạy cảm của thẻ trong hệ thống |
-| BG6 | Cung cấp công cụ báo cáo và ra quyết định cho Ban lãnh đạo (doanh thu, tỷ lệ hoàn thành/hủy chuyến, hiệu quả tài xế) |
-| BG7 | Đảm bảo hệ thống vận hành ổn định, chịu tải cao trong giờ cao điểm, có khả năng mở rộng độc lập theo từng thành phần |
-| BG8 | Đảm bảo an toàn thông tin: xác thực, phân quyền, bảo vệ dữ liệu cá nhân/vị trí/giao dịch, lưu vết thao tác quan trọng |
-
----
-
-## 4. Business Requirements
-
-### 4.1 Nhóm Khách hàng (Customer)
-- **BR-01**: Đăng ký tài khoản, đăng nhập, cập nhật thông tin cá nhân
-- **BR-02**: Nhập điểm đón/điểm đến, chọn loại xe, gửi yêu cầu đặt xe
-- **BR-03**: Theo dõi trạng thái chuyến đi theo thời gian thực (đang tìm tài xế, tài xế đã nhận, thời gian dự kiến đến, trạng thái hiện tại)
-- **BR-04**: Xem lịch sử chuyến đi, số tiền đã thanh toán
-- **BR-05**: Đánh giá tài xế sau khi hoàn thành chuyến
-- **BR-06**: Nhận thông báo theo các mốc quan trọng của chuyến (tiếp nhận yêu cầu, tài xế nhận chuyến, tài xế đến điểm đón, hoàn thành chuyến, kết quả thanh toán)
-
-### 4.2 Nhóm Tài xế (Driver)
-- **BR-07**: Đăng ký tài khoản hoặc được nhân viên vận hành tạo tài khoản
-- **BR-08**: Cập nhật hồ sơ cá nhân, thông tin phương tiện, trạng thái hoạt động (sẵn sàng nhận chuyến)
-- **BR-09**: Nhận thông báo chuyến phù hợp; chấp nhận hoặc từ chối chuyến
-- **BR-10**: Cập nhật trạng thái chuyến (đã đến điểm đón, đã đón khách, đang di chuyển, hoàn thành)
-- **BR-11**: Truyền dữ liệu vị trí GPS theo thời gian thực
-
-### 4.3 Nhóm Tìm & phân công tài xế (Matching)
-- **BR-12**: Xác định danh sách tài xế phù hợp dựa trên vị trí, trạng thái sẵn sàng và tiêu chí vận hành
-- **BR-13**: Ưu tiên tài xế phù hợp/gần khách hàng nhất
-- **BR-14**: Xử lý trường hợp tài xế không phản hồi hoặc từ chối — tự động tìm tài xế khác mà không cần khách hàng tạo lại yêu cầu
-- **BR-15**: Thông báo rõ ràng cho khách hàng khi không tìm được tài xế phù hợp
-
-### 4.4 Nhóm Thanh toán (Payment)
-- **BR-16**: Tính cước phí dựa trên loại dịch vụ và thông tin chuyến đi
-- **BR-17**: Hỗ trợ thanh toán bằng tiền mặt và thanh toán điện tử
-- **BR-18**: Tích hợp với nhà cung cấp thanh toán bên ngoài; không lưu thông tin thẻ/tài khoản thanh toán nhạy cảm trong hệ thống CAB
-- **BR-19**: Xử lý và thông báo khi giao dịch thanh toán điện tử thất bại, cho phép xử lý lại theo chính sách doanh nghiệp
-
-### 4.5 Nhóm Thông báo (Notification)
-- **BR-20**: Gửi thông báo đa kênh cho khách hàng và tài xế theo các sự kiện của chuyến đi
-- **BR-21**: Kiến trúc cho phép mở rộng thêm kênh thông báo mới trong tương lai mà không ảnh hưởng toàn hệ thống
-
-### 4.6 Nhóm Quản trị vận hành (Admin/Operations)
-- **BR-22**: Giao diện quản trị để quản lý khách hàng, tài xế, phương tiện, chuyến đi
-- **BR-23**: Xem chuyến đang diễn ra, kiểm tra trạng thái tài xế, hỗ trợ xử lý chuyến bị lỗi
-- **BR-24**: Tra cứu lịch sử giao dịch
-- **BR-25**: Phân quyền truy cập — giới hạn thao tác nhạy cảm cho nhân viên thông thường
-- **BR-26**: Báo cáo số lượng chuyến, doanh thu, tỷ lệ hoàn thành/hủy chuyến, hiệu quả hoạt động tài xế
-
-### 4.7 Yêu cầu phi chức năng (Non-functional Requirements)
-- **BR-27**: Hệ thống ổn định trong thời điểm nhu cầu tăng cao (khả năng chịu tải)
-- **BR-28**: Lỗi ở một thành phần (thanh toán, thông báo) không được làm ngừng toàn bộ hệ thống đặt xe (fault isolation)
-- **BR-29**: Các thành phần có khả năng mở rộng (scale) độc lập
-- **BR-30**: Hỗ trợ triển khai tính năng mới từng phần, hạn chế ảnh hưởng chức năng đang hoạt động
-
-### 4.8 Yêu cầu bảo mật (Security)
-- **BR-31**: Xác thực khách hàng và tài xế trước khi sử dụng chức năng cần tài khoản
-- **BR-32**: Kiểm soát quyền truy cập cho các thao tác quản trị
-- **BR-33**: Bảo vệ thông tin cá nhân, thông tin phương tiện, dữ liệu vị trí, dữ liệu giao dịch
-- **BR-34**: Lưu vết (audit log) các thao tác quan trọng phục vụ kiểm tra sự cố
-
-### 4.9 Các vấn đề cần làm rõ thêm (Open Issues / TBD)
-- Cách tính cước cụ thể
-- Tiêu chí ưu tiên tài xế chi tiết
-- Thời gian tối đa tài xế phải phản hồi yêu cầu
-- Chính sách hủy chuyến
-- Cách xử lý khi mất kết nối mạng
-- Thời gian lưu trữ dữ liệu
-
----
-
-## 5. Mô hình Quy trình Nghiệp vụ (Business Process Model)
-
-```mermaid
-flowchart TD
-    Start(["Khách hàng mở app"]) --> A["Đăng nhập / Đăng ký"]
-    A --> B["Nhập điểm đón, điểm đến,<br/>chọn loại xe"]
-    B --> C["Gửi yêu cầu đặt xe"]
-    C --> D["Hệ thống tìm tài xế phù hợp<br/>(vị trí, trạng thái sẵn sàng)"]
-    D --> E["Gửi thông báo chuyến<br/>đến tài xế phù hợp nhất"]
-    E --> F{"Tài xế phản hồi?"}
-    F -->|"Từ chối / Không phản hồi"| D
-    F -->|"Không còn tài xế phù hợp"| G["Thông báo khách hàng:<br/>không tìm được tài xế"]
-    G --> End1(["Kết thúc"])
-    F -->|"Chấp nhận"| H["Thông báo khách hàng:<br/>tài xế đã nhận chuyến"]
-    H --> I["Tài xế di chuyển đến điểm đón<br/>(cập nhật GPS thời gian thực)"]
-    I --> J["Tài xế cập nhật: đã đến điểm đón"]
-    J --> K["Tài xế cập nhật: đã đón khách"]
-    K --> L["Chuyến đi đang thực hiện<br/>(theo dõi thời gian thực)"]
-    L --> M["Tài xế cập nhật: hoàn thành chuyến"]
-    M --> N["Hệ thống tính cước phí<br/>dựa trên loại dịch vụ & chuyến đi"]
-    N --> O{"Hình thức thanh toán?"}
-    O -->|"Tiền mặt"| P["Xác nhận thanh toán tiền mặt"]
-    O -->|"Điện tử"| Q["Gửi yêu cầu xử lý giao dịch<br/>đến nhà cung cấp thanh toán"]
-    Q --> R{"Giao dịch thành công?"}
-    R -->|"Thất bại"| S["Thông báo lỗi thanh toán,<br/>cho phép xử lý lại"]
-    S --> O
-    R -->|"Thành công"| P
-    P --> T["Thông báo kết quả thanh toán<br/>cho khách hàng"]
-    T --> U["Khách hàng đánh giá tài xế"]
-    U --> V["Lưu lịch sử chuyến đi,<br/>cập nhật báo cáo vận hành"]
-    V --> End2(["Kết thúc"])
-```
-
-### Quy trình hỗ trợ song song (Operations/Admin)
+Sơ đồ Mermaid dưới đây mô tả toàn bộ vòng đời quy trình nghiệp vụ của một chuyến đi trên hệ thống CAB System (từ lúc đặt xe đến khi đánh giá):
 
 ```mermaid
 sequenceDiagram
-    participant KH as Khách hàng
+    autonumber
+    actor KH as Khách hàng
     participant CAB as CAB System
-    participant TX as Tài xế
-    participant NVH as Nhân viên vận hành
-    participant NCC as Nhà cung cấp thanh toán
+    actor TX as Tài xế
+    participant TT as Cổng thanh toán ngoài
+    actor NV as Nhân viên vận hành
 
-    KH->>CAB: Gửi yêu cầu đặt xe
-    CAB->>TX: Tìm & thông báo chuyến phù hợp
-    TX-->>CAB: Chấp nhận chuyến
-    CAB-->>KH: Thông báo tài xế đã nhận
-
-    loop Trong suốt chuyến đi
-        TX->>CAB: Cập nhật GPS & trạng thái
-        CAB-->>KH: Cập nhật trạng thái chuyến
-        NVH->>CAB: Giám sát chuyến đang diễn ra
+    Note over KH, CAB: 1. Đặt xe & Tìm kiếm tài xế
+    KH->>CAB: Nhập điểm đón/đến & Chọn loại xe
+    CAB->>CAB: Tìm tài xế phù hợp gần nhất (Vị trí, Trạng thái)
+    
+    alt Tìm thấy tài xế
+        CAB->>TX: Gửi yêu cầu nhận chuyến
+        alt Tài xế chấp nhận
+            TX-->>CAB: Chấp nhận chuyến đi
+            CAB-->>KH: Thông báo (Đã tìm thấy tài xế & ETA)
+        else Tài xế từ chối / Không phản hồi
+            CAB->>CAB: Tiếp tục tìm tài xế khác trong hệ thống
+        end
+    else Không tìm thấy tài xế
+        CAB-->>KH: Thông báo không tìm được tài xế
     end
 
-    TX->>CAB: Hoàn thành chuyến
-    CAB->>CAB: Tính cước phí
-    CAB->>NCC: Yêu cầu xử lý thanh toán điện tử
-    NCC-->>CAB: Kết quả giao dịch
-    CAB-->>KH: Thông báo kết quả thanh toán
-    KH->>CAB: Đánh giá tài xế
-    CAB-->>NVH: Cập nhật báo cáo doanh thu & vận hành
+    Note over KH, CAB: 2. Thực hiện chuyến đi
+    TX->>CAB: Cập nhật "Đã đến điểm đón"
+    CAB-->>KH: Thông báo tài xế đã đến
+    TX->>CAB: Cập nhật "Đã đón khách / Đang di chuyển"
+    TX->>CAB: Cập nhật "Hoàn thành chuyến đi"
+
+    Note over KH, TT: 3. Tính cước & Thanh toán
+    CAB->>CAB: Tính số tiền cước dựa trên dịch vụ & quãng đường
+    CAB-->>KH: Hiển thị số tiền phải trả
+    
+    alt Thanh toán tiền mặt
+        KH->>TX: Trả tiền mặt trực tiếp
+        TX->>CAB: Xác nhận đã nhận tiền mặt
+    else Thanh toán điện tử
+        KH->>CAB: Chọn thanh toán điện tử
+        CAB->>TT: Gửi yêu cầu trừ tiền qua API
+        alt Thành công
+            TT-->>CAB: Giao dịch thành công
+        else Thất bại
+            TT-->>CAB: Báo lỗi giao dịch
+            CAB-->>KH: Thông báo lỗi & cho phép thanh toán lại
+        end
+    end
+
+    Note over KH, CAB: 4. Đánh giá & Báo cáo
+    KH->>CAB: Đánh giá tài xế & chuyến đi
+    CAB->>NV: Lưu trữ dữ liệu & Cập nhật báo cáo vận hành/doanh thu
+
 ```
-
----
-
-*Lưu ý: Toàn bộ sơ đồ Mermaid trong tài liệu này render trực tiếp khi xem trên GitHub (README.md, Wiki, hoặc file .md trong repository).*
