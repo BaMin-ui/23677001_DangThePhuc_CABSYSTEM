@@ -533,9 +533,16 @@ OperationReport tổng hợp dữ liệu từ Trip / Fare / Payment
 
 ---
 
+# Tiêu Chí Chấp Nhận (Acceptance Criteria) — Hệ Thống CAB
+
+> Định dạng: **Given / When / Then** (Gherkin), tổ chức theo từng Use Case. Mỗi AC được gắn nhãn **"Liên quan FR"** để truy vết trực tiếp về Chức năng nghiệp vụ (Functional Requirement) tương ứng.
+
+---
+
 ## UC1. Đặt chuyến đi (Actor: Khách hàng)
 
 **AC1.1 — Đặt chuyến thành công, có tài xế**
+*Liên quan FR: F1.1 (Đặt chuyến đi), F1.2 (Tìm kiếm tài xế phù hợp), F1.3 (Gửi yêu cầu chuyến đi tới tài xế)*
 ```
 Given khách hàng đã đăng nhập vào ứng dụng
 And khách hàng đã nhập điểm đón, điểm đến và chọn loại dịch vụ xe
@@ -545,6 +552,7 @@ And hệ thống gửi yêu cầu chuyến đi tới tài xế phù hợp
 ```
 
 **AC1.2 — Không có dữ liệu đầu vào hợp lệ**
+*Liên quan FR: F1.1 (Đặt chuyến đi)*
 ```
 Given khách hàng chưa nhập đủ điểm đón hoặc điểm đến
 When khách hàng nhấn "Đặt xe"
@@ -553,6 +561,7 @@ And hiển thị thông báo yêu cầu nhập đầy đủ thông tin
 ```
 
 **AC1.3 — Không tìm thấy tài xế**
+*Liên quan FR: F1.2 (Tìm kiếm tài xế phù hợp), F1.6 (Thông báo kết quả đặt xe)*
 ```
 Given hệ thống đã tìm kiếm nhưng không có tài xế nào đang rảnh trong khu vực
 When quá trình tìm kiếm kết thúc
@@ -561,6 +570,7 @@ And không tạo bản ghi chuyến đi ở trạng thái "in_progress"
 ```
 
 **AC1.4 — Tài xế từ chối hoặc không phản hồi**
+*Liên quan FR: F1.4 (Xử lý phản hồi tài xế), F1.5 (Tìm tài xế thay thế)*
 ```
 Given yêu cầu chuyến đi đã được gửi tới một tài xế
 When tài xế từ chối HOẶC không phản hồi trong thời gian timeout quy định
@@ -569,6 +579,7 @@ And không thông báo lỗi cho khách hàng ở bước này
 ```
 
 **AC1.5 — Tài xế chấp nhận**
+*Liên quan FR: F1.4 (Xử lý phản hồi tài xế), F1.6 (Thông báo kết quả đặt xe)*
 ```
 Given tài xế nhận được yêu cầu chuyến đi
 When tài xế chọn "Chấp nhận"
@@ -582,6 +593,7 @@ And khách hàng nhận được thông báo kèm ETA
 ## UC2. Theo dõi hành trình (Actor: Khách hàng)
 
 **AC2.1 — Tài xế đến điểm đón**
+*Liên quan FR: F2.1 (Cập nhật "Tài xế đã đến điểm đón"), F2.2 (Thông báo real-time cho khách hàng)*
 ```
 Given chuyến đi đang ở trạng thái "accepted"
 When tài xế cập nhật "Đã đến điểm đón"
@@ -590,6 +602,7 @@ And khách hàng nhận thông báo real-time
 ```
 
 **AC2.2 — Bắt đầu di chuyển**
+*Liên quan FR: F2.3 (Cập nhật "Đã đón khách / Đang di chuyển"), F2.2 (Thông báo real-time cho khách hàng)*
 ```
 Given chuyến đi đang ở trạng thái "driver_arrived"
 When tài xế cập nhật "Đã đón khách"
@@ -598,6 +611,7 @@ And khách hàng nhận thông báo real-time
 ```
 
 **AC2.3 — Không cho phép nhảy trạng thái**
+*Liên quan FR: F2.1, F2.3, F2.4 (toàn bộ chuỗi cập nhật trạng thái hành trình — tính toàn vẹn của state machine)*
 ```
 Given chuyến đi đang ở trạng thái "accepted"
 When có yêu cầu cập nhật trực tiếp sang trạng thái "completed"
@@ -610,6 +624,7 @@ And ghi log lỗi trạng thái không hợp lệ
 ## UC3. Xử lý chuyến đi (Actor: Tài xế)
 
 **AC3.1 — Hoàn thành chuyến đi**
+*Liên quan FR: F2.4 (Cập nhật "Hoàn thành chuyến đi")*
 ```
 Given chuyến đi đang ở trạng thái "in_progress"
 When tài xế cập nhật "Hoàn thành chuyến đi"
@@ -619,6 +634,7 @@ And trạng thái tài xế chuyển lại thành "available" (sau khi tính cư
 ```
 
 **AC3.2 — Ghi nhận vị trí và thời gian mỗi lần cập nhật**
+*Liên quan FR: F2.1, F2.3, F2.4 (tất cả các bước cập nhật trạng thái hành trình)*
 ```
 Given tài xế thực hiện bất kỳ cập nhật trạng thái nào
 When yêu cầu cập nhật được gửi lên hệ thống
@@ -630,6 +646,7 @@ Then hệ thống ghi lại timestamp và trạng thái vào TripStatusLog
 ## UC4. Thanh toán chuyến đi (Actor: Khách hàng, Cổng thanh toán ngoài)
 
 **AC4.1 — Tính cước sau khi hoàn thành chuyến**
+*Liên quan FR: F3.1 (Tính cước phí), F3.2 (Hiển thị số tiền cần thanh toán)*
 ```
 Given chuyến đi ở trạng thái "completed"
 When hệ thống tính cước
@@ -638,6 +655,7 @@ And số tiền được hiển thị cho khách hàng trước khi thanh toán
 ```
 
 **AC4.2 — Thanh toán tiền mặt thành công**
+*Liên quan FR: F3.3 (Thanh toán tiền mặt)*
 ```
 Given khách hàng chọn hình thức thanh toán tiền mặt
 When khách hàng trả tiền trực tiếp cho tài xế
@@ -647,6 +665,7 @@ And chuyến đi được đóng hoàn tất
 ```
 
 **AC4.3 — Thanh toán điện tử thành công**
+*Liên quan FR: F3.4 (Thanh toán điện tử)*
 ```
 Given khách hàng chọn hình thức thanh toán điện tử
 When hệ thống gửi yêu cầu trừ tiền tới cổng thanh toán ngoài
@@ -656,6 +675,7 @@ And chuyến đi được đóng hoàn tất
 ```
 
 **AC4.4 — Thanh toán điện tử thất bại**
+*Liên quan FR: F3.4.1 (Xử lý giao dịch thất bại)*
 ```
 Given khách hàng chọn hình thức thanh toán điện tử
 When cổng thanh toán phản hồi lỗi giao dịch
@@ -665,6 +685,7 @@ And KHÔNG đóng chuyến đi ở trạng thái hoàn tất cho đến khi than
 ```
 
 **AC4.5 — Không xác nhận thành công khi chưa có phản hồi từ cổng thanh toán**
+*Liên quan FR: F3.4 (Thanh toán điện tử)*
 ```
 Given hệ thống đã gửi yêu cầu trừ tiền tới cổng thanh toán ngoài
 When chưa nhận được phản hồi (timeout hoặc đang xử lý)
@@ -677,6 +698,7 @@ And giữ trạng thái giao dịch ở "pending"
 ## UC5. Đánh giá tài xế (Actor: Khách hàng)
 
 **AC5.1 — Đánh giá sau khi thanh toán hoàn tất**
+*Liên quan FR: F4.1 (Đánh giá tài xế/chuyến đi)*
 ```
 Given chuyến đi đã thanh toán thành công
 When khách hàng chọn số sao đánh giá (1–5) và nhập nhận xét (tuỳ chọn)
@@ -685,6 +707,7 @@ And cập nhật điểm rating_avg của tài xế
 ```
 
 **AC5.2 — Không cho phép đánh giá khi chưa thanh toán xong**
+*Liên quan FR: F4.1 (Đánh giá tài xế/chuyến đi)*
 ```
 Given chuyến đi chưa hoàn tất thanh toán
 When khách hàng cố gắng mở màn hình đánh giá
@@ -696,6 +719,7 @@ Then hệ thống không cho phép gửi đánh giá
 ## UC6. Xem báo cáo vận hành (Actor: Nhân viên vận hành)
 
 **AC6.1 — Báo cáo tự động cập nhật sau mỗi chuyến**
+*Liên quan FR: F4.2 (Lưu trữ dữ liệu chuyến đi), F4.3 (Cập nhật báo cáo vận hành/doanh thu)*
 ```
 Given một chuyến đi vừa được đóng hoàn tất (đã thanh toán + đánh giá hoặc bỏ qua đánh giá)
 When hệ thống lưu trữ dữ liệu chuyến đi
@@ -704,6 +728,7 @@ And nhân viên vận hành có thể xem báo cáo được cập nhật mà kh
 ```
 
 **AC6.2 — Báo cáo phản ánh đúng cả hai hình thức thanh toán**
+*Liên quan FR: F4.3 (Cập nhật báo cáo vận hành/doanh thu)*
 ```
 Given trong kỳ báo cáo có cả chuyến thanh toán tiền mặt và điện tử
 When nhân viên vận hành mở báo cáo doanh thu
@@ -715,6 +740,7 @@ Then báo cáo hiển thị tách riêng tổng tiền mặt và tổng điện 
 ## Tiêu Chí Chấp Nhận Chung (Cross-cutting)
 
 **ACX.1 — Một chuyến đi hoạt động tại một thời điểm**
+*Liên quan FR: F1.1 (Đặt chuyến đi) — ràng buộc bổ sung khi khởi tạo chuyến mới*
 ```
 Given khách hàng đang có một chuyến đi ở trạng thái chưa "completed"/"cancelled"
 When khách hàng cố gắng đặt thêm một chuyến đi mới
@@ -723,6 +749,7 @@ And thông báo khách hàng đang có chuyến đi đang hoạt động
 ```
 
 **ACX.2 — Tài xế không nhận chồng chéo chuyến**
+*Liên quan FR: F1.2 (Tìm kiếm tài xế phù hợp) — ràng buộc lọc danh sách tài xế khả dụng*
 ```
 Given tài xế đang ở trạng thái "busy" (đang thực hiện một chuyến)
 When hệ thống tìm tài xế cho một yêu cầu chuyến đi khác
@@ -730,6 +757,7 @@ Then tài xế này không được đưa vào danh sách tài xế khả dụng
 ```
 
 **ACX.3 — Ghi log đầy đủ cho tra soát**
+*Liên quan FR: F2.1, F2.3, F2.4 (cập nhật trạng thái hành trình), F3.3, F3.4 (thanh toán) — áp dụng xuyên suốt, không giới hạn ở một FR đơn lẻ*
 ```
 Given bất kỳ giao tiếp trạng thái nào giữa khách hàng, tài xế, hệ thống, cổng thanh toán
 When trạng thái hoặc giao dịch thay đổi
@@ -738,16 +766,7 @@ Then hệ thống ghi log đầy đủ (thời gian, bên thực hiện, trạng
 
 ---
 
-## Ghi Chú
 
-- Các AC trên được viết ở mức **chức năng nghiệp vụ**, sẵn sàng cho việc chuyển thành test case chi tiết (test case ID, dữ liệu test cụ thể, kỳ vọng UI).
-- Một số AC (như AC4.5, ACX.1, ACX.2) đến từ các quy tắc nghiệp vụ đã xác định trước đó, cần được xác nhận lại với đội nghiệp vụ vì Sequence Diagram gốc không thể hiện rõ ràng những trường hợp này.
-### Bảng truy vết 
-# Bảng Truy Vết (Traceability Matrix) — Hệ Thống CAB
-
-> Liên kết xuyên suốt giữa: **Chức năng nghiệp vụ (F)** ↔ **Use Case (UC)** ↔ **Quy tắc nghiệp vụ (BR)** ↔ **Entity liên quan** ↔ **Tiêu chí chấp nhận (AC)**
-
----
 
 ## 1. Nhóm Đặt Xe & Điều Phối Tài Xế
 
