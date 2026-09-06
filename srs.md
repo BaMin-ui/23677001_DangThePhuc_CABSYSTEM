@@ -305,3 +305,223 @@ Requested → Accepted → Driver Arrived → In Progress → Completed
 | BR4.4 | *(Đề xuất bổ sung)* Cần quy định đánh giá có bắt buộc hay không, và cơ chế xử lý khi khách không đánh giá (auto-rating mặc định, nhắc lại...). |
 
 ---
+###9. # Xác Định Entity (Thực Thể Dữ Liệu) — Hệ Thống Gọi Xe Công Nghệ (CAB)
+
+> Các entity được suy ra từ Sequence Diagram gốc, tổ chức theo từng nhóm nghiệp vụ. Đây là bước tiền đề cho thiết kế ERD/Class Diagram.
+
+---
+
+## 1. Danh Sách Entity Chính
+
+### 1.1 Customer (Khách hàng)
+
+| Thuộc tính | Mô tả |
+|---|---|
+| customer_id | Mã định danh khách hàng |
+| name | Họ tên |
+| phone_number | Số điện thoại |
+| current_location | Vị trí hiện tại (lat/long) |
+| payment_method_default | Hình thức thanh toán mặc định |
+
+**Quan hệ:** 1 Customer — N Trip (một khách hàng có nhiều chuyến đi)
+
+---
+
+### 1.2 Driver (Tài xế)
+
+| Thuộc tính | Mô tả |
+|---|---|
+| driver_id | Mã định danh tài xế |
+| name | Họ tên |
+| phone_number | Số điện thoại |
+| vehicle_info | Thông tin xe (biển số, loại xe) |
+| current_location | Vị trí hiện tại (lat/long) |
+| status | Trạng thái: `available` / `busy` / `offline` |
+| rating_avg | Điểm đánh giá trung bình |
+
+**Quan hệ:** 1 Driver — N Trip (một tài xế thực hiện nhiều chuyến đi)
+
+---
+
+### 1.3 Trip (Chuyến đi) — **Entity trung tâm**
+
+| Thuộc tính | Mô tả |
+|---|---|
+| trip_id | Mã định danh chuyến đi |
+| customer_id | Khóa ngoại → Customer |
+| driver_id | Khóa ngoại → Driver (null cho đến khi có tài xế nhận) |
+| pickup_location | Điểm đón (lat/long, địa chỉ) |
+| dropoff_location | Điểm đến (lat/long, địa chỉ) |
+| vehicle_type | Loại dịch vụ xe (car/bike/premium...) |
+| status | Trạng thái: `requested` / `accepted` / `driver_arrived` / `in_progress` / `completed` / `cancelled` |
+| eta | Thời gian dự kiến tài xế đến |
+| requested_at | Thời điểm đặt xe |
+| started_at | Thời điểm bắt đầu di chuyển |
+| completed_at | Thời điểm hoàn thành |
+| distance | Quãng đường thực tế |
+
+**Quan hệ:**
+- N Trip — 1 Customer
+- N Trip — 1 Driver
+- 1 Trip — 1 Fare
+- 1 Trip — 1 Payment
+- 1 Trip — 0..1 Rating
+- 1 Trip — N TripStatusLog
+
+---
+
+### 1.4 TripRequest (Yêu cầu chuyến đi gửi tài xế)
+
+| Thuộc tính | Mô tả |
+|---|---|
+| request_id | Mã định danh yêu cầu |
+| trip_id | Khóa ngoại → Trip |
+| driver_id | Tài xế được gửi yêu cầu |
+| sent_at | Thời điểm gửi yêu cầu |
+| response | Kết quả: `accepted` / `rejected` / `timeout` |
+| response_at | Thời điểm phản hồi |
+
+**Ghi chú:** Entity này ghi lại **từng lượt** hệ thống gửi yêu cầu tới các tài xế khác nhau (do có vòng lặp tìm tài xế thay thế) — 1 Trip có thể có N TripRequest.
+
+**Quan hệ:** N TripRequest — 1 Trip; N TripRequest — 1 Driver
+
+---
+
+### 1.5 TripStatusLog (Nhật ký trạng thái chuyến đi)
+
+| Thuộc tính | Mô tả |
+|---|---|
+| log_id | Mã định danh log |
+| trip_id | Khóa ngoại → Trip |
+| status | Trạng thái tại thời điểm ghi log |
+| timestamp | Thời điểm cập nhật |
+| updated_by | Bên cập nhật (driver/system) |
+
+**Quan hệ:** N TripStatusLog — 1 Trip
+
+---
+
+### 1.6 Fare (Cước phí)
+
+| Thuộc tính | Mô tả |
+|---|---|
+| fare_id | Mã định danh |
+| trip_id | Khóa ngoại → Trip |
+| base_fare | Cước cơ bản |
+| distance_fare | Cước theo quãng đường |
+| total_amount | Tổng số tiền phải trả |
+| calculated_at | Thời điểm tính cước |
+
+**Quan hệ:** 1 Fare — 1 Trip
+
+---
+
+### 1.7 Payment (Thanh toán)
+
+| Thuộc tính | Mô tả |
+|---|---|
+| payment_id | Mã định danh giao dịch |
+| trip_id | Khóa ngoại → Trip |
+| fare_id | Khóa ngoại → Fare |
+| payment_method | `cash` / `e-payment` |
+| amount | Số tiền thanh toán |
+| status | `pending` / `success` / `failed` |
+| gateway_transaction_id | Mã giao dịch từ cổng thanh toán ngoài (nếu e-payment) |
+| paid_at | Thời điểm thanh toán thành công |
+| retry_count | Số lần thử lại (nếu thất bại) |
+
+**Quan hệ:** 1 Payment — 1 Trip; N Payment attempt có thể liên kết tới 1 PaymentGatewayTransaction (nếu tách riêng)
+
+---
+
+### 1.8 PaymentGatewayTransaction (Giao dịch cổng thanh toán ngoài)
+
+| Thuộc tính | Mô tả |
+|---|---|
+| transaction_id | Mã giao dịch tại cổng thanh toán |
+| payment_id | Khóa ngoại → Payment |
+| request_payload | Dữ liệu gửi đi |
+| response_status | Kết quả trả về (success/fail) |
+| error_code | Mã lỗi (nếu có) |
+| processed_at | Thời điểm xử lý |
+
+**Quan hệ:** 1 PaymentGatewayTransaction — 1 Payment
+
+---
+
+### 1.9 Rating (Đánh giá)
+
+| Thuộc tính | Mô tả |
+|---|---|
+| rating_id | Mã định danh |
+| trip_id | Khóa ngoại → Trip |
+| customer_id | Người đánh giá |
+| driver_id | Người được đánh giá |
+| score | Điểm số (1–5) |
+| comment | Nhận xét |
+| created_at | Thời điểm đánh giá |
+
+**Quan hệ:** 1 Rating — 1 Trip; N Rating — 1 Driver
+
+---
+
+### 1.10 OperationReport (Báo cáo vận hành/doanh thu)
+
+| Thuộc tính | Mô tả |
+|---|---|
+| report_id | Mã định danh báo cáo |
+| period | Kỳ báo cáo (ngày/tuần/tháng) |
+| total_trips | Tổng số chuyến đi |
+| total_revenue | Tổng doanh thu |
+| total_cash | Tổng thu tiền mặt |
+| total_epayment | Tổng thu điện tử |
+| generated_at | Thời điểm tạo báo cáo |
+| generated_for | Nhân viên vận hành nhận báo cáo |
+
+**Quan hệ:** Tổng hợp (aggregate) từ nhiều Trip/Fare/Payment trong kỳ báo cáo — không có khóa ngoại trực tiếp tới Trip.
+
+---
+
+### 1.11 Operator (Nhân viên vận hành)
+
+| Thuộc tính | Mô tả |
+|---|---|
+| operator_id | Mã định danh |
+| name | Họ tên |
+| role | Vai trò/quyền hạn |
+
+**Quan hệ:** 1 Operator — N OperationReport (nhận/quản lý báo cáo)
+
+---
+
+## 2. Sơ Đồ Quan Hệ Entity (Mô tả dạng văn bản)
+
+```
+Customer (1) ────< (N) Trip (N) >──── (1) Driver
+                        │
+                        ├──< TripRequest (N) >── Driver
+                        ├──< TripStatusLog (N)
+                        ├──── Fare (1)
+                        │          │
+                        │          └──── Payment (1) ──── PaymentGatewayTransaction (1)
+                        └──── Rating (0..1)
+
+OperationReport (N) ──── Operator (1)
+OperationReport tổng hợp dữ liệu từ Trip / Fare / Payment
+```
+
+---
+
+## 3. Ghi Chú Về Entity Còn Thiếu (Chưa Xuất Hiện Trong Sequence Diagram)
+
+| Entity đề xuất | Lý do cần bổ sung |
+|---|---|
+| **Vehicle** | Tách riêng thông tin xe khỏi Driver (1 tài xế có thể đổi xe, hoặc 1 xe nhiều tài xế theo ca) |
+| **Promotion/Voucher** | Phục vụ chức năng khuyến mãi/mã giảm giá vào bước tính cước |
+| **Account/Authentication** | Quản lý đăng nhập, xác thực Customer/Driver |
+| **Complaint/Support Ticket** | Phục vụ chức năng khiếu nại sau chuyến đi |
+| **CancellationLog** | Ghi nhận lý do và bên hủy chuyến (khách/tài xế) |
+
+---
+
+**Ghi chú:** Đây là các entity ở mức khái niệm (conceptual), phù hợp cho bước phân tích nghiệp vụ. Khi chuyển sang thiết kế cơ sở dữ liệu vật lý, cần chuẩn hóa thêm kiểu dữ liệu, ràng buộc (constraint) và index phù hợp.
