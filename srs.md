@@ -25,6 +25,7 @@ Dựa trên ngữ cảnh dự án xây dựng hệ thống **CAB System** trong 
 
 ## 2. Ma trận Stakeholder (Stakeholder Matrix - Power/Interest Grid)
 
+
 ```mermaid
 quadrantChart
     title Stakeholder Matrix - Power vs Interest
@@ -36,8 +37,8 @@ quadrantChart
     quadrant-4 Keep Informed
     Ban lanh dao/Ban giam doc: [0.85, 0.9]
     Nhan vien van hanh: [0.75, 0.55]
-    Khach hang: [0.8, 0.25]
-    Tai xe: [0.78, 0.2]
+    Khach hang: [1, 0.25]
+    Tai xe: [1, 0.2]
     Nha cung cap thanh toan: [0.3, 0.55]
 ```
 
