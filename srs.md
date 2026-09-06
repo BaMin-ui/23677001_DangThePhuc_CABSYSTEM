@@ -39,7 +39,7 @@ quadrantChart
 ### 2.3 Sơ đồ tổng quan hệ thống (Use Case / Context Diagram)
 Dưới đây là sơ đồ Mermaid thể hiện tương tác giữa các tác nhân và hệ thống CAB:
 
-mermaid
+```mermaid
 mindmap
   root((Stakeholders<br/>CAB System))
   
