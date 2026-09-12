@@ -82,10 +82,9 @@ graph TD
 2. **BG-02:** Nâng cao trải nghiệm khách hàng thông qua khả năng theo dõi chuyến đi theo thời gian thực.
 3. **BG-03:** Quản lý tập trung thông tin thanh toán và cước phí, đảm bảo minh bạch và an toàn dữ liệu.
 4. **BG-04:** Xây dựng hệ thống có khả năng mở rộng (scalable) để phục vụ số lượng lớn khách hàng và tài xế.
-5. **BG-05:** Đảm bảo kiến trúc linh hoạt, cho phép bổ sung dịch vụ mới, phương thức thanh toán mới, kênh thông báo mới mà không cần xây dựng lại toàn bộ hệ thống.
-6. **BG-06:** Cung cấp công cụ báo cáo, thống kê giúp ban lãnh đạo ra quyết định (số chuyến, doanh thu, tỷ lệ hoàn thành/hủy, hiệu quả tài xế).
-7. **BG-07:** Đảm bảo hệ thống hoạt động ổn định, có khả năng chịu tải cao và cô lập lỗi giữa các phân hệ (thanh toán, thông báo không làm sập toàn hệ thống).
-8. **BG-08:** Đảm bảo an toàn, bảo mật dữ liệu cá nhân, dữ liệu vị trí và dữ liệu giao dịch.
+6. **BG-05:** Cung cấp công cụ báo cáo, thống kê giúp ban lãnh đạo ra quyết định (số chuyến, doanh thu, tỷ lệ hoàn thành/hủy, hiệu quả tài xế).
+7. **BG-06:** Đảm bảo hệ thống hoạt động ổn định, có khả năng chịu tải cao và cô lập lỗi giữa các phân hệ (thanh toán, thông báo không làm sập toàn hệ thống).
+8. **BG-07:** Đảm bảo an toàn, bảo mật dữ liệu cá nhân, dữ liệu vị trí và dữ liệu giao dịch.
 
 ---
 
