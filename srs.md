@@ -408,5 +408,115 @@ erDiagram
 - **AC-14:** Given một thao tác quan trọng được thực hiện trên hệ thống (thanh toán, phân quyền, chỉnh sửa dữ liệu tài xế...), When thao tác hoàn tất, Then hệ thống ghi lại nhật ký (audit log) đầy đủ thông tin tác nhân, hành động và thời gian.
 
 ---
+## 12. Sơ Đồ Use Case (Use Case Diagram)
 
-*Tài liệu này được xây dựng dựa trên yêu cầu khách hàng ban đầu. Các mục được đánh dấu "chưa chốt" trong phần Quy Tắc Nghiệp Vụ cần được Business Analyst làm rõ thêm với các bên liên quan trước khi nhóm phát triển triển khai chi tiết.*
+```mermaid
+flowchart LR
+    KH((Khách hàng))
+    TX((Tài xế))
+    NVVH((Nhân viên vận hành))
+    BLD((Ban lãnh đạo))
+    PG((Payment Gateway))
+    NP((Notification Provider))
+
+    subgraph SYS[" Hệ thống CAB "]
+        UC1([Đăng ký / Đăng nhập])
+        UC2([Cập nhật thông tin cá nhân])
+        UC3([Đặt xe])
+        UC4([Theo dõi chuyến đi])
+        UC5([Xem lịch sử chuyến đi])
+        UC6([Đánh giá tài xế])
+        UC7([Cập nhật hồ sơ / phương tiện])
+        UC8([Chuyển trạng thái sẵn sàng])
+        UC9([Chấp nhận / Từ chối chuyến])
+        UC10([Cập nhật trạng thái chuyến])
+        UC11([Cập nhật vị trí])
+        UC12([Tìm tài xế phù hợp])
+        UC13([Tính cước])
+        UC14([Thanh toán])
+        UC15([Gửi thông báo])
+        UC16([Quản lý khách hàng / tài xế / phương tiện])
+        UC17([Xử lý sự cố chuyến])
+        UC18([Tra cứu lịch sử giao dịch])
+        UC19([Xem báo cáo thống kê])
+        UC20([Phân quyền thao tác nhạy cảm])
+    end
+
+    KH --> UC1
+    KH --> UC2
+    KH --> UC3
+    KH --> UC4
+    KH --> UC5
+    KH --> UC6
+
+    TX --> UC1
+    TX --> UC7
+    TX --> UC8
+    TX --> UC9
+    TX --> UC10
+    TX --> UC11
+
+    UC3 -.include.-> UC12
+    UC3 -.include.-> UC15
+    UC10 -.include.-> UC15
+    UC12 -.include.-> UC13
+    UC13 -.include.-> UC14
+    UC14 -.include.-> PG
+    UC15 -.include.-> NP
+
+    NVVH --> UC16
+    NVVH --> UC17
+    NVVH --> UC18
+    NVVH --> UC19
+    UC19 -.include.-> UC20
+
+    BLD --> UC19
+```
+
+**Ghi chú:**
+- Mối quan hệ `-.include.->` thể hiện use case này bắt buộc gọi tới use case kia (ví dụ: Đặt xe luôn kéo theo Tìm tài xế phù hợp và Gửi thông báo).
+- `Payment Gateway` và `Notification Provider` là hệ thống bên ngoài (external system), không thuộc phạm vi xây dựng của dự án CAB.
+
+---
+
+## 13. Rủi ro (Risks)
+
+| ID | Rủi ro | Mô tả | Ảnh hưởng | Khả năng xảy ra | Biện pháp giảm thiểu |
+|---|---|---|---|---|---|
+| RISK-01 | Thời gian triển khai ngắn (7 tuần) | Phạm vi nghiệp vụ lớn (3 nhóm actor, matching, thanh toán, thông báo, báo cáo) có thể vượt quá khả năng hoàn thành trong 7 tuần | Cao | Cao | Ưu tiên hóa yêu cầu theo MoSCoW, triển khai theo từng giai đoạn (MVP trước, mở rộng sau) |
+| RISK-02 | Chưa chốt quy tắc nghiệp vụ (cách tính cước, tiêu chí ưu tiên tài xế, chính sách hủy...) | Có thể dẫn tới thiết kế/code phải làm lại khi khách hàng chốt yêu cầu muộn | Cao | Cao | BA làm rõ và chốt các quy tắc còn thiếu ngay trong giai đoạn phân tích, trước khi dev bắt đầu |
+| RISK-03 | Phụ thuộc vào nhà cung cấp thanh toán bên thứ ba | Nếu bên thứ ba thay đổi API, downtime, hoặc chậm phản hồi sẽ ảnh hưởng luồng thanh toán | Cao | Trung bình | Thiết kế theo hướng tách rời (adapter pattern), có cơ chế retry và fallback (cho phép thanh toán tiền mặt) |
+| RISK-04 | Sai lệch trong thuật toán tìm tài xế (Matching) | Nếu logic ưu tiên/khoảng cách không chính xác có thể khiến khách hàng chờ lâu hoặc tài xế không được phân công công bằng | Trung bình | Trung bình | Viết test case riêng cho matching engine, giám sát thời gian tìm tài xế trung bình sau khi go-live |
+| RISK-05 | Tải hệ thống tăng cao vào giờ cao điểm | Có thể gây nghẽn cổ chai (bottleneck) nếu kiến trúc không tách rời các phân hệ | Cao | Trung bình | Thiết kế kiến trúc microservice/tách module, có khả năng scale độc lập, load test trước khi go-live |
+| RISK-06 | Lỗi bảo mật dữ liệu cá nhân / vị trí / giao dịch | Rò rỉ dữ liệu nhạy cảm gây thiệt hại uy tín và pháp lý | Cao | Thấp | Mã hóa dữ liệu, kiểm soát truy cập theo vai trò (RBAC), audit log đầy đủ |
+| RISK-07 | Thông tin thẻ thanh toán bị lưu trực tiếp trong hệ thống (vi phạm PCI-DSS) | Vi phạm quy định bảo mật thanh toán nếu thiết kế sai | Cao | Thấp | Đảm bảo mọi thông tin nhạy cảm được xử lý và lưu trữ tại bên thứ ba (tokenization), không lưu trong DB của CAB |
+| RISK-08 | Tài xế/khách hàng mất kết nối mạng giữa chuyến đi | Trạng thái chuyến có thể không đồng bộ, gây tranh chấp về cước phí hoặc trạng thái hoàn thành | Trung bình | Trung bình | Cần BA làm rõ chính sách xử lý mất kết nối; áp dụng cơ chế đồng bộ lại trạng thái khi có kết nối trở lại |
+| RISK-09 | Thiếu nhân sự/tài nguyên phát triển trong thời gian ngắn | Không đủ người để hoàn thành tất cả các module đúng hạn | Trung bình | Trung bình | Lập kế hoạch nguồn lực rõ ràng ngay từ đầu, xác định phạm vi MVP để giảm tải |
+| RISK-10 | Thay đổi yêu cầu giữa chừng (scope creep) | Khách hàng bổ sung yêu cầu mới trong quá trình phát triển làm ảnh hưởng tiến độ 7 tuần | Trung bình | Cao | Áp dụng quy trình kiểm soát thay đổi (Change Request), đánh giá tác động trước khi chấp nhận thay đổi |
+
+---
+
+## 14. Bảng Test Case
+
+Bảng dưới đây liên kết Test Case với **Yêu cầu Chức năng (FR)**, **Quy tắc Nghiệp vụ (BR)** và **Tiêu chí Chấp nhận (AC)** tương ứng để đảm bảo khả năng truy vết (traceability).
+
+| TC ID | Mô tả Test Case | FR liên quan | BR liên quan | AC liên quan | Tiền điều kiện | Bước thực hiện | Kết quả mong đợi |
+|---|---|---|---|---|---|---|---|
+| TC-01 | Khách hàng đặt xe thành công | FR-01, FR-03, FR-04 | BR-01 | AC-01 | Khách hàng đã đăng nhập | 1. Nhập điểm đón/đến 2. Chọn loại xe 3. Bấm "Đặt xe" | Hệ thống tạo yêu cầu chuyến, trạng thái chuyển "Đang tìm tài xế" |
+| TC-02 | Tài xế từ chối chuyến, hệ thống tự tìm tài xế khác | FR-15, FR-17 | BR-03 | AC-02 | Có ít nhất 2 tài xế khả dụng gần khách hàng | 1. Tài xế A nhận thông báo mời chuyến 2. Tài xế A từ chối | Hệ thống tự động gửi mời chuyến cho tài xế B mà không yêu cầu khách hàng đặt lại |
+| TC-03 | Không tìm được tài xế phù hợp | FR-15, FR-18 | BR-04 | AC-03 | Không có tài xế nào ở trạng thái sẵn sàng trong khu vực | 1. Khách hàng đặt xe 2. Hệ thống tìm kiếm hết danh sách tài xế khả dụng | Hệ thống hiển thị thông báo "Không tìm được tài xế" cho khách hàng |
+| TC-04 | Tài xế chỉ nhận mời chuyến khi ở trạng thái sẵn sàng | FR-11, FR-12 | BR-02 | — | Tài xế đang ở trạng thái "offline"/"bận" | 1. Hệ thống thực hiện matching | Tài xế không nhận được thông báo mời chuyến |
+| TC-05 | Cập nhật trạng thái chuyến theo thời gian thực | FR-13, FR-05 | BR-11 | AC-04 | Tài xế đã nhận chuyến | 1. Tài xế cập nhật "đã đến điểm đón" 2. Tài xế cập nhật "đã đón khách" | Khách hàng thấy trạng thái cập nhật ngay trên ứng dụng |
+| TC-06 | Tính cước sau khi chuyến hoàn thành | FR-19 | BR-05 | AC-05 | Chuyến đi đã hoàn thành, có đủ dữ liệu quãng đường/thời gian | 1. Tài xế cập nhật "hoàn thành chuyến" 2. Hệ thống tính cước | Số tiền hiển thị khớp với loại dịch vụ và thông tin chuyến đi |
+| TC-07 | Thanh toán điện tử thất bại | FR-20, FR-22 | BR-07 | AC-06 | Khách hàng chọn thanh toán điện tử, cổng thanh toán trả về lỗi | 1. Khách hàng xác nhận thanh toán 2. Giao dịch bị từ chối bởi cổng thanh toán | Hệ thống thông báo lỗi và cho phép khách hàng thử lại |
+| TC-08 | Không lưu thông tin thẻ nhạy cảm trong hệ thống CAB | FR-21 | BR-06 | AC-07 | Khách hàng thực hiện thanh toán điện tử thành công | 1. Kiểm tra database hệ thống CAB sau giao dịch | Không có trường lưu số thẻ/CVV/thông tin tài khoản thanh toán đầy đủ trong DB CAB |
+| TC-09 | Gửi thông báo đầy đủ vòng đời chuyến đi cho khách hàng | FR-23 | — | AC-08 | Chuyến đi được tạo và thực hiện đầy đủ các bước | 1. Theo dõi các mốc: tiếp nhận, tài xế nhận, tài xế đến, hoàn thành, kết quả thanh toán | Khách hàng nhận đủ 5 loại thông báo tương ứng từng mốc |
+| TC-10 | Gửi thông báo cho tài xế khi có thay đổi chuyến | FR-24 | — | AC-09 | Tài xế đang thực hiện chuyến, có thay đổi (VD: khách hủy) | 1. Khách hàng hủy chuyến giữa chừng | Tài xế nhận được thông báo về thay đổi |
+| TC-11 | Nhân viên vận hành thông thường không thể thực hiện thao tác nhạy cảm | FR-30 | BR-08 | AC-10 | Đăng nhập với tài khoản nhân viên vận hành, quyền hạn thấp | 1. Truy cập chức năng quản trị nhạy cảm (VD: xóa tài xế, chỉnh sửa giao dịch) | Hệ thống từ chối thao tác, hiển thị lỗi không đủ quyền |
+| TC-12 | Xem báo cáo thống kê vận hành | FR-31 | — | AC-11 | Người dùng có quyền xem báo cáo (ban lãnh đạo/nhân viên có quyền) | 1. Truy cập màn hình báo cáo 2. Chọn khoảng thời gian | Hiển thị đúng số lượng chuyến, doanh thu, tỷ lệ hoàn thành, tỷ lệ hủy, hiệu quả tài xế |
+| TC-13 | Hệ thống đặt xe vẫn hoạt động khi phân hệ thanh toán lỗi | NFR-03 | BR-10 | AC-12 | Mô phỏng lỗi/downtime ở service thanh toán | 1. Khách hàng đặt xe trong lúc service thanh toán bị lỗi | Chức năng đặt xe, tìm tài xế, theo dõi chuyến vẫn hoạt động bình thường |
+| TC-14 | Chặn truy cập chức năng yêu cầu tài khoản khi chưa xác thực | FR-01 | — | AC-13 | Người dùng chưa đăng nhập | 1. Truy cập trực tiếp chức năng đặt xe/xem lịch sử | Hệ thống chuyển hướng về màn hình đăng nhập, từ chối truy cập |
+| TC-15 | Ghi nhật ký khi thực hiện thao tác quan trọng | FR-30 | BR-09 | AC-14 | Nhân viên vận hành có quyền thực hiện thao tác nhạy cảm | 1. Thực hiện thao tác (VD: khóa tài khoản tài xế) | Hệ thống ghi lại audit log gồm tác nhân, hành động, đối tượng, thời gian |
+| TC-16 | Vị trí tài xế được cập nhật liên tục | FR-14 | BR-11 | — | Tài xế đang ở trạng thái hoạt động (online) | 1. Tài xế di chuyển 2. Kiểm tra bảng DriverLocation | Vị trí tài xế được cập nhật theo khoảng thời gian định kỳ hợp lý |
+| TC-17 | Khách hàng đánh giá tài xế sau chuyến | FR-07 | — | — | Chuyến đi đã hoàn thành và thanh toán xong | 1. Khách hàng chọn điểm đánh giá và nhận xét 2. Gửi đánh giá | Đánh giá được lưu và liên kết đúng với trip_id, driver_id |
+| TC-18 | Tài xế được tạo tài khoản bởi nhân viên vận hành | FR-09 | — | — | Nhân viên vận hành đăng nhập với quyền quản lý tài xế | 1. Nhân viên tạo tài khoản tài xế mới với đầy đủ thông tin | Tài khoản tài xế được tạo thành công, trạng thái mặc định hợp lệ |
