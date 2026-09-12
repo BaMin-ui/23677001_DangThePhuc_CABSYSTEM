@@ -147,6 +147,72 @@ graph TD
 | FR-30 | Hệ thống phân quyền chức năng quản trị, giới hạn thao tác nhạy cảm |
 | FR-31 | Hệ thống cung cấp báo cáo: số lượng chuyến, doanh thu, tỷ lệ hoàn thành, tỷ lệ hủy, hiệu quả hoạt động tài xế |
 
+## Sơ đồ use case 
+```mermaid
+flowchart LR
+    KH((Khách hàng))
+    TX((Tài xế))
+    NVVH((Nhân viên vận hành))
+    BLD((Ban lãnh đạo))
+    PG((Payment Gateway))
+    NP((Notification Provider))
+
+    subgraph SYS[" Hệ thống CAB "]
+        UC1([Đăng ký / Đăng nhập])
+        UC2([Cập nhật thông tin cá nhân])
+        UC3([Đặt xe])
+        UC4([Theo dõi chuyến đi])
+        UC5([Xem lịch sử chuyến đi])
+        UC6([Đánh giá tài xế])
+        UC7([Cập nhật hồ sơ / phương tiện])
+        UC8([Chuyển trạng thái sẵn sàng])
+        UC9([Chấp nhận / Từ chối chuyến])
+        UC10([Cập nhật trạng thái chuyến])
+        UC11([Cập nhật vị trí])
+        UC12([Tìm tài xế phù hợp])
+        UC13([Tính cước])
+        UC14([Thanh toán])
+        UC15([Gửi thông báo])
+        UC16([Quản lý khách hàng / tài xế / phương tiện])
+        UC17([Xử lý sự cố chuyến])
+        UC18([Tra cứu lịch sử giao dịch])
+        UC19([Xem báo cáo thống kê])
+        UC20([Phân quyền thao tác nhạy cảm])
+    end
+
+    %% Actor - Use Case (association)
+    KH --> UC1
+    KH --> UC2
+    KH --> UC3
+    KH --> UC4
+    KH --> UC5
+    KH --> UC6
+
+    TX --> UC1
+    TX --> UC7
+    TX --> UC8
+    TX --> UC9
+    TX --> UC10
+    TX --> UC11
+
+    NVVH --> UC16
+    NVVH --> UC17
+    NVVH --> UC18
+    NVVH --> UC19
+
+    BLD --> UC19
+
+    PG --- UC14
+    NP --- UC15
+
+    %% Use Case - Use Case (include, chỉ áp dụng giữa các use case với nhau)
+    UC3 -.include.-> UC12
+    UC3 -.include.-> UC15
+    UC10 -.include.-> UC15
+    UC12 -.include.-> UC13
+    UC13 -.include.-> UC14
+    UC19 -.include.-> UC20
+```
 ### 5.2 Yêu cầu Phi Chức năng (Non-Functional Requirements)
 
 | ID | Loại | Mô tả |
@@ -408,76 +474,7 @@ erDiagram
 - **AC-14:** Given một thao tác quan trọng được thực hiện trên hệ thống (thanh toán, phân quyền, chỉnh sửa dữ liệu tài xế...), When thao tác hoàn tất, Then hệ thống ghi lại nhật ký (audit log) đầy đủ thông tin tác nhân, hành động và thời gian.
 
 ---
-## 12. Sơ Đồ Use Case (Use Case Diagram)
 
-```mermaid
-flowchart LR
-    KH((Khách hàng))
-    TX((Tài xế))
-    NVVH((Nhân viên vận hành))
-    BLD((Ban lãnh đạo))
-    PG((Payment Gateway))
-    NP((Notification Provider))
-
-    subgraph SYS[" Hệ thống CAB "]
-        UC1([Đăng ký / Đăng nhập])
-        UC2([Cập nhật thông tin cá nhân])
-        UC3([Đặt xe])
-        UC4([Theo dõi chuyến đi])
-        UC5([Xem lịch sử chuyến đi])
-        UC6([Đánh giá tài xế])
-        UC7([Cập nhật hồ sơ / phương tiện])
-        UC8([Chuyển trạng thái sẵn sàng])
-        UC9([Chấp nhận / Từ chối chuyến])
-        UC10([Cập nhật trạng thái chuyến])
-        UC11([Cập nhật vị trí])
-        UC12([Tìm tài xế phù hợp])
-        UC13([Tính cước])
-        UC14([Thanh toán])
-        UC15([Gửi thông báo])
-        UC16([Quản lý khách hàng / tài xế / phương tiện])
-        UC17([Xử lý sự cố chuyến])
-        UC18([Tra cứu lịch sử giao dịch])
-        UC19([Xem báo cáo thống kê])
-        UC20([Phân quyền thao tác nhạy cảm])
-    end
-
-    KH --> UC1
-    KH --> UC2
-    KH --> UC3
-    KH --> UC4
-    KH --> UC5
-    KH --> UC6
-
-    TX --> UC1
-    TX --> UC7
-    TX --> UC8
-    TX --> UC9
-    TX --> UC10
-    TX --> UC11
-
-    UC3 -.include.-> UC12
-    UC3 -.include.-> UC15
-    UC10 -.include.-> UC15
-    UC12 -.include.-> UC13
-    UC13 -.include.-> UC14
-    UC14 -.include.-> PG
-    UC15 -.include.-> NP
-
-    NVVH --> UC16
-    NVVH --> UC17
-    NVVH --> UC18
-    NVVH --> UC19
-    UC19 -.include.-> UC20
-
-    BLD --> UC19
-```
-
-**Ghi chú:**
-- Mối quan hệ `-.include.->` thể hiện use case này bắt buộc gọi tới use case kia (ví dụ: Đặt xe luôn kéo theo Tìm tài xế phù hợp và Gửi thông báo).
-- `Payment Gateway` và `Notification Provider` là hệ thống bên ngoài (external system), không thuộc phạm vi xây dựng của dự án CAB.
-
----
 
 ## 13. Rủi ro (Risks)
 
