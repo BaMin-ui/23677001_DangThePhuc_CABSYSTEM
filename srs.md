@@ -230,6 +230,64 @@ flowchart LR
 | NFR-11 | Thời gian phản hồi vị trí | Dữ liệu vị trí tài xế cần được cập nhật đủ nhanh để hỗ trợ tìm tài xế gần và dự kiến thời gian đến chính xác |
 
 ---
+### 5.3 Yêu Cầu Hệ Thống (System Requirements - SR)
+
+Mục này cụ thể hóa các Yêu cầu Kinh doanh (FR/NFR) thành các yêu cầu kỹ thuật mà hệ thống phải đáp ứng để triển khai được. Đây là góc nhìn kỹ thuật/kiến trúc, làm cơ sở cho đội thiết kế hệ thống (System Design).
+
+#### 5.3.1 Yêu cầu Kiến trúc Hệ thống
+
+| ID | Yêu cầu hệ thống | Liên quan NFR/FR | Mô tả |
+|---|---|---|---|
+| SR-01 | Kiến trúc theo hướng module hóa/dịch vụ (service-oriented / microservices) | NFR-02, NFR-03, NFR-04 | Tách các phân hệ Đặt xe, Matching, Thanh toán, Thông báo, Quản trị thành các service độc lập, giao tiếp qua API/message broker, để có thể scale và deploy riêng biệt |
+| SR-02 | Sử dụng message queue / event-driven cho giao tiếp giữa các service | NFR-03, NFR-10 | Đảm bảo lỗi ở service Thanh toán/Thông báo không làm gián đoạn service Đặt xe (loose coupling) |
+| SR-03 | API Gateway làm điểm vào duy nhất cho client (app khách hàng, app tài xế, web quản trị) | NFR-05, NFR-06 | Tập trung xác thực, giới hạn tần suất truy cập (rate limiting), định tuyến request |
+| SR-04 | Cơ chế Circuit Breaker / Retry / Fallback cho các lời gọi tới dịch vụ ngoài | NFR-03, RISK-03 | Khi Payment Gateway hoặc Notification Provider bị lỗi/timeout, hệ thống không bị treo và có phương án dự phòng (VD: chuyển sang thanh toán tiền mặt) |
+| SR-05 | Khả năng auto-scaling theo tải (horizontal scaling) | NFR-01, NFR-02 | Tự động tăng/giảm số lượng instance của từng service theo lưu lượng thực tế (giờ cao điểm) |
+
+#### 5.3.2 Yêu cầu Tích hợp Hệ thống Ngoài (External Interfaces)
+
+| ID | Hệ thống ngoài | Loại tích hợp | Mô tả |
+|---|---|---|---|
+| SR-06 | Payment Gateway (VD: VNPay, Momo, Stripe...) | REST API / Webhook | Hệ thống CAB gọi API để khởi tạo giao dịch, nhận kết quả qua webhook/callback; không lưu trực tiếp dữ liệu thẻ (tokenization) |
+| SR-07 | SMS Gateway (VD: Twilio, ESMS, Viettel SMS) | REST API | Gửi thông báo dạng SMS cho các sự kiện quan trọng khi người dùng không mở app |
+| SR-08 | Push Notification Service (Firebase Cloud Messaging / Apple Push Notification Service) | SDK / REST API | Gửi thông báo đẩy tới thiết bị di động của khách hàng và tài xế |
+| SR-09 | Bản đồ & định vị (VD: Google Maps API / Mapbox) | REST API / SDK | Tính khoảng cách, thời gian di chuyển dự kiến (ETA), hiển thị bản đồ, theo dõi vị trí tài xế |
+| SR-10 | Email Service (VD: SendGrid, AWS SES) | SMTP / REST API | Gửi email cho các thông báo dạng biên nhận, báo cáo, khôi phục mật khẩu |
+
+#### 5.3.3 Yêu cầu về Nền tảng & Môi trường Triển khai
+
+| ID | Yêu cầu | Mô tả |
+|---|---|---|
+| SR-11 | Ứng dụng khách hàng & tài xế | Chạy trên nền tảng di động (iOS, Android) hoặc ứng dụng web responsive (tùy phạm vi giai đoạn 1) |
+| SR-12 | Cổng quản trị (Admin Portal) | Ứng dụng web, chạy trên trình duyệt hiện đại (Chrome, Edge, Safari phiên bản mới) |
+| SR-13 | Môi trường triển khai | Hỗ trợ triển khai trên hạ tầng cloud (AWS/GCP/Azure) hoặc on-premise theo container hóa (Docker/Kubernetes) để đáp ứng yêu cầu mở rộng độc lập (NFR-02) |
+| SR-14 | Cơ sở dữ liệu | Sử dụng hệ quản trị CSDL quan hệ (cho dữ liệu giao dịch, tài khoản) kết hợp CSDL phi quan hệ hoặc bộ nhớ đệm (cho dữ liệu vị trí thời gian thực, trạng thái chuyến) |
+
+#### 5.3.4 Yêu cầu Giao tiếp Thời gian thực (Real-time Communication)
+
+| ID | Yêu cầu | Liên quan FR | Mô tả |
+|---|---|---|---|
+| SR-15 | Kênh giao tiếp thời gian thực (WebSocket / MQTT / Server-Sent Events) | FR-05, FR-13, FR-14 | Đẩy cập nhật trạng thái chuyến đi và vị trí tài xế tới ứng dụng khách hàng/tài xế mà không cần polling liên tục |
+| SR-16 | Tần suất cập nhật vị trí tài xế | FR-14, NFR-11 | Hệ thống cần định nghĩa khoảng thời gian cập nhật vị trí hợp lý (VD: 3–5 giây/lần) để cân bằng giữa độ chính xác và tải hệ thống |
+
+#### 5.3.5 Yêu cầu Bảo mật Hệ thống (kỹ thuật hóa từ NFR-05 → NFR-09)
+
+| ID | Yêu cầu | Mô tả |
+|---|---|---|
+| SR-17 | Mã hóa dữ liệu truyền tải | Toàn bộ giao tiếp giữa client - server - service ngoài phải qua HTTPS/TLS |
+| SR-18 | Mã hóa dữ liệu lưu trữ (at-rest) | Dữ liệu nhạy cảm (thông tin cá nhân, vị trí, giao dịch) phải được mã hóa khi lưu trong CSDL |
+| SR-19 | Cơ chế xác thực & phân quyền | Sử dụng token-based authentication (VD: JWT/OAuth2) kèm phân quyền theo vai trò (RBAC) cho từng loại tài khoản (khách hàng, tài xế, nhân viên vận hành, quản trị) |
+| SR-20 | Tokenization thông tin thanh toán | Không lưu số thẻ/thông tin tài khoản thanh toán trực tiếp; chỉ lưu token do Payment Gateway trả về |
+| SR-21 | Ghi nhận nhật ký hệ thống (system audit log) | Toàn bộ thao tác quan trọng (đăng nhập, thanh toán, thay đổi dữ liệu nhạy cảm) phải được ghi log tập trung, có thể tra cứu và không thể chỉnh sửa |
+
+#### 5.3.6 Yêu cầu về Giám sát & Vận hành (Monitoring & Operations)
+
+| ID | Yêu cầu | Mô tả |
+|---|---|---|
+| SR-22 | Giám sát hệ thống (Monitoring/Alerting) | Có công cụ giám sát tình trạng hoạt động (uptime, độ trễ, tỷ lệ lỗi) của từng service, cảnh báo khi vượt ngưỡng |
+| SR-23 | Sao lưu & khôi phục dữ liệu (Backup/Restore) | Có cơ chế sao lưu định kỳ và khôi phục dữ liệu khi có sự cố (chi tiết thời gian lưu trữ cần chốt cùng khách hàng - xem mục 8) |
+| SR-24 | Triển khai độc lập từng phần (CI/CD, blue-green/canary deployment) | Đáp ứng NFR-04: cho phép cập nhật/triển khai từng service mà không ảnh hưởng đến các service đang hoạt động |
+---
 
 ## 6. Mô hình Quy trình Nghiệp vụ (Business Process Model)
 
