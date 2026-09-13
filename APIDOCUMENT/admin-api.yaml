@@ -1,0 +1,164 @@
+openapi: 3.0.3
+info:
+  title: CAB System API - Admin & Operation Module
+  description: API quản trị vận hành hệ thống, giám sát chuyến đi và báo cáo thống kê.
+  version: "1.0.0"
+
+servers:
+  - url: https://api.cabsystem.abc.vn/v1
+    description: Production
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  parameters:
+    AuthorizationHeader:
+      name: Authorization
+      in: header
+      required: true
+      schema: { type: string }
+    ContentTypeHeader:
+      name: Content-Type
+      in: header
+      required: true
+      schema:
+        type: string
+        enum: [application/json]
+
+  responses:
+    BadRequest:
+      description: "400 Bad Request"
+    Unauthorized:
+      description: "401 Unauthorized"
+    Forbidden:
+      description: "403 Forbidden"
+
+  schemas:
+    Trip:
+      type: object
+      properties:
+        trip_id: { type: string }
+        status: { type: string }
+
+tags:
+  - name: Admin & Report
+    description: Các chức năng dành riêng cho nhân viên vận hành và quản trị
+
+paths:
+  /admin/drivers:
+    post:
+      tags: [Admin & Report]
+      summary: Nhân viên vận hành tạo tài khoản tài xế
+      parameters:
+        - $ref: '#/components/parameters/AuthorizationHeader'
+        - $ref: '#/components/parameters/ContentTypeHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [full_name, phone, license_no]
+              properties:
+                full_name: { type: string }
+                phone: { type: string }
+                license_no: { type: string }
+      responses:
+        '201':
+          description: Created
+        '403':
+          $ref: '#/components/responses/Forbidden'
+    get:
+      tags: [Admin & Report]
+      summary: Quản lý danh sách tài xế
+      parameters:
+        - $ref: '#/components/parameters/AuthorizationHeader'
+      responses:
+        '200':
+          description: OK
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /admin/trips/active:
+    get:
+      tags: [Admin & Report]
+      summary: Xem các chuyến đang diễn ra
+      parameters:
+        - $ref: '#/components/parameters/AuthorizationHeader'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Trip'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /admin/trips/{trip_id}/resolve:
+    post:
+      tags: [Admin & Report]
+      summary: Hỗ trợ xử lý sự cố chuyến đi
+      parameters:
+        - $ref: '#/components/parameters/AuthorizationHeader'
+        - $ref: '#/components/parameters/ContentTypeHeader'
+        - name: trip_id
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [action, reason]
+              properties:
+                action: { type: string, enum: [FORCE_COMPLETE, FORCE_CANCEL, REASSIGN_DRIVER] }
+                reason: { type: string }
+      responses:
+        '200':
+          description: OK
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /admin/transactions:
+    get:
+      tags: [Admin & Report]
+      summary: Tra cứu lịch sử giao dịch toàn hệ thống
+      parameters:
+        - $ref: '#/components/parameters/AuthorizationHeader'
+      responses:
+        '200':
+          description: OK
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /admin/reports:
+    get:
+      tags: [Admin & Report]
+      summary: Xem báo cáo thống kê vận hành & doanh thu
+      parameters:
+        - $ref: '#/components/parameters/AuthorizationHeader'
+        - name: from_date
+          in: query
+          required: true
+          schema: { type: string, format: date }
+        - name: to_date
+          in: query
+          required: true
+          schema: { type: string, format: date }
+      responses:
+        '200':
+          description: OK
+        '403':
+          description: Forbidden (Không đủ quyền)
+
+security:
+  - BearerAuth: []
