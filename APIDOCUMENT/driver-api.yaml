@@ -1,0 +1,251 @@
+openapi: 3.0.3
+info:
+  title: CAB System API - Driver Module
+  description: API dành riêng cho nhóm người dùng Tài xế (Đăng ký, Hồ sơ, Trạng thái sẵn sàng, Nhận chuyến, Cập nhật vị trí).
+  version: "1.0.0"
+  contact:
+    name: Development Team - Công ty ABC
+
+servers:
+  - url: https://api.cabsystem.abc.vn/v1
+    description: Production
+  - url: https://staging-api.cabsystem.abc.vn/v1
+    description: Staging
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  parameters:
+    AuthorizationHeader:
+      name: Authorization
+      in: header
+      required: true
+      schema:
+        type: string
+    ContentTypeHeader:
+      name: Content-Type
+      in: header
+      required: true
+      schema:
+        type: string
+        enum: [application/json]
+
+  responses:
+    BadRequest:
+      description: "400 Bad Request"
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    Unauthorized:
+      description: "401 Unauthorized"
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    Forbidden:
+      description: "403 Forbidden"
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    Conflict:
+      description: "409 Conflict"
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+  schemas:
+    ErrorResponse:
+      type: object
+      properties:
+        error_code: { type: string }
+        message: { type: string }
+
+    GeoPoint:
+      type: object
+      required: [latitude, longitude]
+      properties:
+        latitude: { type: number, format: float }
+        longitude: { type: number, format: float }
+
+    Trip:
+      type: object
+      properties:
+        trip_id: { type: string }
+        status: { type: string }
+
+tags:
+  - name: Driver
+    description: Các chức năng thao tác dành cho tài xế
+
+paths:
+  /drivers/register:
+    post:
+      tags: [Driver]
+      summary: Tài xế tự đăng ký tài khoản
+      parameters:
+        - $ref: '#/components/parameters/ContentTypeHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [full_name, phone, license_no, password]
+              properties:
+                full_name: { type: string }
+                phone: { type: string }
+                license_no: { type: string }
+                password: { type: string, format: password }
+      responses:
+        '201':
+          description: Created
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  /drivers/{driver_id}/profile:
+    put:
+      tags: [Driver]
+      summary: Cập nhật hồ sơ và phương tiện tài xế
+      parameters:
+        - $ref: '#/components/parameters/AuthorizationHeader'
+        - $ref: '#/components/parameters/ContentTypeHeader'
+        - name: driver_id
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                full_name: { type: string }
+                vehicle:
+                  type: object
+                  properties:
+                    plate_number: { type: string }
+                    vehicle_type: { type: string, enum: [bike, car_4_seats, car_7_seats] }
+      responses:
+        '200':
+          description: OK
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /drivers/{driver_id}/availability:
+    patch:
+      tags: [Driver]
+      summary: Đổi trạng thái sẵn sàng nhận chuyến
+      parameters:
+        - $ref: '#/components/parameters/AuthorizationHeader'
+        - $ref: '#/components/parameters/ContentTypeHeader'
+        - name: driver_id
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [status]
+              properties:
+                status: { type: string, enum: [AVAILABLE, BUSY, OFFLINE] }
+      responses:
+        '200':
+          description: OK
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /trips/{trip_id}/offers/{driver_id}/respond:
+    post:
+      tags: [Driver]
+      summary: Chấp nhận hoặc từ chối lời mời chuyến
+      parameters:
+        - $ref: '#/components/parameters/AuthorizationHeader'
+        - $ref: '#/components/parameters/ContentTypeHeader'
+        - name: trip_id
+          in: path
+          required: true
+          schema: { type: string }
+        - name: driver_id
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [decision]
+              properties:
+                decision: { type: string, enum: [ACCEPT, REJECT] }
+      responses:
+        '200':
+          description: OK
+        '409':
+          description: Conflict (Hết hạn / Đã bị nhận)
+
+  /trips/{trip_id}/status:
+    patch:
+      tags: [Driver]
+      summary: Tài xế cập nhật trạng thái chuyến đi
+      parameters:
+        - $ref: '#/components/parameters/AuthorizationHeader'
+        - $ref: '#/components/parameters/ContentTypeHeader'
+        - name: trip_id
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [status]
+              properties:
+                status: { type: string, enum: [DRIVER_ARRIVED, IN_PROGRESS, COMPLETED, CANCELLED] }
+      responses:
+        '200':
+          description: OK
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+  /drivers/{driver_id}/location:
+    post:
+      tags: [Driver]
+      summary: Cập nhật vị trí tài xế thời gian thực
+      parameters:
+        - $ref: '#/components/parameters/AuthorizationHeader'
+        - $ref: '#/components/parameters/ContentTypeHeader'
+        - name: driver_id
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              allOf:
+                - $ref: '#/components/schemas/GeoPoint'
+                - type: object
+                  properties:
+                    heading: { type: number }
+                    speed_kmh: { type: number }
+      responses:
+        '202':
+          description: Accepted
+
+security:
+  - BearerAuth: []
