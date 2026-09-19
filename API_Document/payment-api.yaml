@@ -1,0 +1,408 @@
+openapi: 3.0.3
+info:
+  title: CAB System API - Payment & Fare Module
+  description: |
+    API tính cước, khởi tạo thanh toán, thử lại thanh toán thất bại và xử lý webhook từ Payment Gateway.
+
+    **Nguyên tắc bảo mật thanh toán (BR-06, SR-20, NFR-08, AC-07):** hệ thống CAB KHÔNG nhận và KHÔNG lưu số thẻ/CVV/thông tin
+    tài khoản. Ứng dụng khách lấy `payment_token` trực tiếp từ Payment Gateway (tokenization) rồi gửi token cho CAB.
+    CAB chỉ lưu token/`payment_gateway_ref` do cổng thanh toán trả về.
+
+    **Luồng điện tử:** `POST /trips/{trip_id}/payments` tạo giao dịch `PENDING` → CAB gọi cổng thanh toán →
+    kết quả cuối cùng đến qua `POST /payments/webhook` (SUCCESS/FAILED) → Notification module thông báo kết quả cho khách hàng (FR-23).
+
+    **Cô lập lỗi (NFR-03, BR-10, SR-04):** lỗi hoặc timeout của cổng thanh toán chỉ ảnh hưởng module này (trả `503`),
+    không làm gián đoạn đặt xe. Khi đó khách hàng có thể chuyển sang thanh toán tiền mặt.
+
+    **Chính sách chưa chốt:** công thức tính cước, số lần thử lại tối đa và thời hạn thử lại do doanh nghiệp quyết định.
+
+    **Quy ước truy vết:** các trường mở rộng `x-fr`, `x-br`, `x-ac`, `x-nfr`, `x-sr`, `x-tc`, `x-roles` liên kết endpoint với SRS.
+  version: "1.1.0"
+
+servers:
+  - url: https://api.cabsystem.abc.vn/v1
+    description: Production
+  - url: https://staging-api.cabsystem.abc.vn/v1
+    description: Staging
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Xác thực bằng JWT theo SR-19.
+
+  parameters:
+    AuthorizationHeader:
+      name: Authorization
+      in: header
+      required: true
+      schema: { type: string }
+    ContentTypeHeader:
+      name: Content-Type
+      in: header
+      required: true
+      schema:
+        type: string
+        enum: [application/json]
+    IdempotencyKeyHeader:
+      name: Idempotency-Key
+      in: header
+      required: false
+      description: Khuyến nghị luôn gửi. Cùng key sẽ trả lại kết quả của lần gọi đầu, tránh trừ tiền hai lần.
+      schema:
+        type: string
+        format: uuid
+
+  responses:
+    BadRequest:
+      description: "400 Bad Request"
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    Unauthorized:
+      description: "401 Unauthorized"
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    Forbidden:
+      description: "403 Forbidden - Không phải chủ chuyến hoặc không đủ quyền"
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    NotFound:
+      description: "404 Not Found"
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    Conflict:
+      description: "409 Conflict - Trạng thái chuyến/giao dịch không cho phép thao tác"
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    ServiceUnavailable:
+      description: "503 Service Unavailable - Cổng thanh toán lỗi/timeout; khách hàng có thể chuyển sang tiền mặt"
+      headers:
+        Retry-After:
+          description: Số giây nên chờ trước khi thử lại
+          schema: { type: integer }
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+  schemas:
+    ErrorResponse:
+      type: object
+      properties:
+        error_code: { type: string }
+        message: { type: string }
+        request_id: { type: string, format: uuid }
+
+    Fare:
+      type: object
+      description: Chi tiết tính cước của chuyến đã hoàn thành (BR-05).
+      properties:
+        fare_id: { type: string }
+        trip_id: { type: string }
+        vehicle_type: { type: string, enum: [bike, car_4_seats, car_7_seats] }
+        distance_km: { type: number }
+        duration_minutes: { type: number }
+        base_fare: { type: number }
+        distance_fare: { type: number }
+        time_fare: { type: number }
+        total_amount: { type: number }
+        currency: { type: string, example: VND }
+        calculated_at: { type: string, format: date-time }
+
+    PaymentMethod:
+      type: string
+      enum: [cash, e_payment]
+
+    PaymentStatus:
+      type: string
+      enum: [PENDING, SUCCESS, FAILED]
+
+    Payment:
+      type: object
+      description: Một lần thanh toán (mỗi lần thử lại là một bản ghi mới, `attempt_no` tăng dần). Không chứa dữ liệu thẻ.
+      properties:
+        payment_id: { type: string }
+        trip_id: { type: string }
+        amount: { type: number }
+        currency: { type: string, example: VND }
+        method:
+          $ref: '#/components/schemas/PaymentMethod'
+        status:
+          $ref: '#/components/schemas/PaymentStatus'
+        attempt_no: { type: integer, minimum: 1 }
+        payment_gateway_ref: { type: string, nullable: true }
+        failure_reason: { type: string, nullable: true }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
+
+    PaymentList:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Payment'
+
+tags:
+  - name: Payment & Fare
+    description: Xử lý tiền cước và giao dịch thanh toán
+
+paths:
+  /trips/{trip_id}/fare:
+    get:
+      tags: [Payment & Fare]
+      operationId: getTripFare
+      summary: Lấy chi tiết tính cước chuyến đi
+      description: Cước chỉ có sau khi chuyến `COMPLETED`; trước đó trả `409`. Tài xế xem để thu tiền mặt.
+      x-fr: [FR-19]
+      x-br: [BR-05]
+      x-ac: [AC-05]
+      x-tc: [TC-06]
+      x-roles: [CUSTOMER, DRIVER, STAFF, ADMIN]
+      parameters:
+        - $ref: '#/components/parameters/AuthorizationHeader'
+        - name: trip_id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Fare'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+  /trips/{trip_id}/payments:
+    post:
+      tags: [Payment & Fare]
+      operationId: createPayment
+      summary: Khởi tạo thanh toán chuyến đi
+      description: |
+        - `cash`: ghi nhận thanh toán tiền mặt, trả `status = SUCCESS`.
+        - `e_payment`: bắt buộc `payment_token` từ cổng thanh toán; trả `status = PENDING`, kết quả cuối cùng đến qua webhook.
+
+        Trả `409` khi chuyến chưa `COMPLETED` hoặc đã thanh toán thành công.
+        Cổng thanh toán lỗi/timeout trả `503`; khách hàng có thể thử lại hoặc chọn `cash` (SR-04).
+      x-fr: [FR-20, FR-21]
+      x-br: [BR-06, BR-10]
+      x-ac: [AC-07]
+      x-nfr: [NFR-03, NFR-08]
+      x-sr: [SR-04, SR-06, SR-20]
+      x-tc: [TC-08]
+      x-roles: [CUSTOMER]
+      parameters:
+        - $ref: '#/components/parameters/AuthorizationHeader'
+        - $ref: '#/components/parameters/ContentTypeHeader'
+        - $ref: '#/components/parameters/IdempotencyKeyHeader'
+        - name: trip_id
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [method]
+              properties:
+                method:
+                  $ref: '#/components/schemas/PaymentMethod'
+                payment_token:
+                  type: string
+                  description: Token do cổng thanh toán cấp. Bắt buộc khi method = e_payment; không bao giờ là số thẻ thật.
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Payment'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+    get:
+      tags: [Payment & Fare]
+      operationId: listTripPayments
+      summary: Xem các lần thanh toán của chuyến đi
+      description: Trả tất cả lần thử thanh toán của chuyến (mới nhất trước).
+      x-fr: [FR-20, FR-22]
+      x-roles: [CUSTOMER, STAFF, ADMIN]
+      parameters:
+        - $ref: '#/components/parameters/AuthorizationHeader'
+        - name: trip_id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentList'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /payments/{payment_id}:
+    get:
+      tags: [Payment & Fare]
+      operationId: getPayment
+      summary: Tra cứu trạng thái giao dịch
+      x-fr: [FR-20, FR-22]
+      x-roles: [CUSTOMER, STAFF, ADMIN]
+      parameters:
+        - $ref: '#/components/parameters/AuthorizationHeader'
+        - name: payment_id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Payment'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /payments/{payment_id}/retry:
+    post:
+      tags: [Payment & Fare]
+      operationId: retryPayment
+      summary: Thử lại thanh toán thất bại
+      description: |
+        Chỉ áp dụng cho giao dịch `FAILED` (BR-07). Tạo một lần thanh toán mới (`attempt_no` tăng).
+        Khách hàng có thể gửi `payment_token` mới hoặc đổi sang `cash`. Trả `409` nếu giao dịch không ở trạng thái `FAILED`
+        hoặc vượt số lần/thời hạn thử lại theo chính sách doanh nghiệp (chưa chốt).
+      x-fr: [FR-22]
+      x-br: [BR-07]
+      x-ac: [AC-06]
+      x-sr: [SR-04]
+      x-tc: [TC-07]
+      x-roles: [CUSTOMER]
+      parameters:
+        - $ref: '#/components/parameters/AuthorizationHeader'
+        - $ref: '#/components/parameters/ContentTypeHeader'
+        - $ref: '#/components/parameters/IdempotencyKeyHeader'
+        - name: payment_id
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [method]
+              properties:
+                method:
+                  $ref: '#/components/schemas/PaymentMethod'
+                payment_token:
+                  type: string
+                  description: Bắt buộc khi method = e_payment
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Payment'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+
+  /payments/webhook:
+    post:
+      tags: [Payment & Fare]
+      operationId: paymentGatewayWebhook
+      summary: Webhook nhận kết quả từ cổng thanh toán
+      description: |
+        Endpoint do Payment Gateway gọi, không dùng JWT. Xác thực bằng chữ ký `X-Signature` (HMAC trên body thô);
+        chữ ký sai trả `401`. Xử lý idempotent theo `event_id`: sự kiện gửi lặp vẫn trả `200`.
+        Sau khi cập nhật trạng thái, hệ thống phát sự kiện để Notification module thông báo kết quả (FR-23).
+      security: []
+      x-fr: [FR-21, FR-22, FR-23]
+      x-br: [BR-06, BR-07]
+      x-nfr: [NFR-08]
+      x-sr: [SR-06]
+      parameters:
+        - name: X-Signature
+          in: header
+          required: true
+          schema: { type: string }
+        - $ref: '#/components/parameters/ContentTypeHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [payment_gateway_ref, status]
+              properties:
+                event_id: { type: string }
+                payment_gateway_ref: { type: string }
+                status: { type: string, enum: [SUCCESS, FAILED] }
+                failure_reason: { type: string }
+                occurred_at: { type: string, format: date-time }
+      responses:
+        '200':
+          description: OK - đã ghi nhận (kể cả sự kiện trùng)
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+security:
+  - BearerAuth: []

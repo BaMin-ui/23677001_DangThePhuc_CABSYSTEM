@@ -1,0 +1,1118 @@
+openapi: 3.0.3
+info:
+  title: CAB System API - Admin & Operation Module
+  description: |
+    API quản trị vận hành hệ thống: quản lý khách hàng, tài xế, phương tiện, chuyến đi; giám sát trạng thái tài xế;
+    tra cứu giao dịch, nhật ký thao tác và báo cáo thống kê.
+
+    **Phân quyền (BR-08, FR-30, NFR-06):** mỗi thao tác khai báo vai trò được phép trong trường mở rộng `x-roles`.
+    - `STAFF`: nhân viên vận hành thông thường - xem, tra cứu, tạo/sửa tài xế, xử lý sự cố chuyến.
+    - `ADMIN`: nhân viên có quyền cao - thực hiện thêm các thao tác nhạy cảm (khóa/mở khóa, xóa, duyệt/khóa phương tiện, xem audit log).
+    - `EXEC`: ban lãnh đạo - chỉ xem báo cáo.
+
+    Vai trò không đủ quyền nhận `403 Forbidden` (AC-10). Danh sách vai trò là đề xuất, cần xác nhận với khách hàng.
+
+    Mọi thao tác ghi (POST/PUT/PATCH/DELETE) đều phải được ghi vào audit log (BR-09, NFR-09, AC-14).
+
+    **Quy ước truy vết:** các trường mở rộng `x-fr`, `x-br`, `x-ac`, `x-nfr`, `x-sr`, `x-tc`, `x-roles` liên kết endpoint với SRS.
+  version: "1.1.0"
+
+servers:
+  - url: https://api.cabsystem.abc.vn/v1
+    description: Production
+  - url: https://staging-api.cabsystem.abc.vn/v1
+    description: Staging
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  parameters:
+    AuthorizationHeader:
+      name: Authorization
+      in: header
+      required: true
+      schema: { type: string }
+    ContentTypeHeader:
+      name: Content-Type
+      in: header
+      required: true
+      schema:
+        type: string
+        enum: [application/json]
+    PageParam:
+      name: page
+      in: query
+      required: false
+      schema: { type: integer, minimum: 1, default: 1 }
+    LimitParam:
+      name: limit
+      in: query
+      required: false
+      schema: { type: integer, minimum: 1, maximum: 100, default: 20 }
+    KeywordParam:
+      name: keyword
+      in: query
+      required: false
+      description: Tìm theo tên hoặc số điện thoại
+      schema: { type: string }
+    FromDateTimeParam:
+      name: from_date
+      in: query
+      required: false
+      schema: { type: string, format: date }
+    ToDateTimeParam:
+      name: to_date
+      in: query
+      required: false
+      schema: { type: string, format: date }
+
+  responses:
+    BadRequest:
+      description: "400 Bad Request"
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    Unauthorized:
+      description: "401 Unauthorized"
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    Forbidden:
+      description: "403 Forbidden - Không đủ quyền (AC-10)"
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    NotFound:
+      description: "404 Not Found"
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    Conflict:
+      description: "409 Conflict - Trạng thái hiện tại không cho phép thao tác hoặc dữ liệu đã tồn tại"
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    TooManyRequests:
+      description: "429 Too Many Requests"
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+  schemas:
+    ErrorResponse:
+      type: object
+      properties:
+        error_code: { type: string }
+        message: { type: string }
+        request_id: { type: string, format: uuid }
+
+    GeoPoint:
+      type: object
+      required: [latitude, longitude]
+      properties:
+        latitude: { type: number, format: float }
+        longitude: { type: number, format: float }
+
+    Pagination:
+      type: object
+      properties:
+        page: { type: integer }
+        limit: { type: integer }
+        total_items: { type: integer }
+        total_pages: { type: integer }
+
+    StaffRole:
+      type: string
+      enum: [STAFF, ADMIN, EXEC]
+
+    AuthTokenResponse:
+      type: object
+      properties:
+        access_token: { type: string }
+        refresh_token: { type: string }
+        token_type: { type: string, enum: [Bearer] }
+        expires_in: { type: integer, description: Thời gian sống của access_token (giây) }
+        staff:
+          $ref: '#/components/schemas/StaffProfile'
+
+    StaffProfile:
+      type: object
+      properties:
+        staff_id: { type: string }
+        full_name: { type: string }
+        role:
+          $ref: '#/components/schemas/StaffRole'
+
+    AccountStatus:
+      type: string
+      description: Trạng thái tài khoản (khác với trạng thái sẵn sàng của tài xế).
+      enum: [ACTIVE, LOCKED]
+
+    TripStatus:
+      type: string
+      enum: [SEARCHING, DRIVER_ASSIGNED, DRIVER_ARRIVED, IN_PROGRESS, COMPLETED, CANCELLED, NO_DRIVER_FOUND]
+
+    Customer:
+      type: object
+      properties:
+        customer_id: { type: string }
+        full_name: { type: string }
+        phone: { type: string }
+        email: { type: string, format: email }
+        account_status:
+          $ref: '#/components/schemas/AccountStatus'
+        created_at: { type: string, format: date-time }
+
+    Vehicle:
+      type: object
+      properties:
+        vehicle_id: { type: string }
+        driver_id: { type: string }
+        plate_number: { type: string }
+        vehicle_type: { type: string, enum: [bike, car_4_seats, car_7_seats] }
+        brand: { type: string }
+        model: { type: string }
+        status:
+          $ref: '#/components/schemas/VehicleStatus'
+
+    VehicleStatus:
+      type: string
+      description: Đề xuất - cần chốt giá trị với khách hàng.
+      enum: [PENDING_APPROVAL, ACTIVE, LOCKED]
+
+    Driver:
+      type: object
+      properties:
+        driver_id: { type: string }
+        full_name: { type: string }
+        phone: { type: string }
+        license_no: { type: string }
+        status:
+          type: string
+          description: Trạng thái sẵn sàng nhận chuyến (FR-11, FR-27).
+          enum: [AVAILABLE, BUSY, OFFLINE]
+        account_status:
+          $ref: '#/components/schemas/AccountStatus'
+        rating_avg: { type: number, format: float }
+        created_at: { type: string, format: date-time }
+
+    DriverDetail:
+      allOf:
+        - $ref: '#/components/schemas/Driver'
+        - type: object
+          properties:
+            current_trip_id:
+              type: string
+              nullable: true
+            last_location:
+              type: object
+              nullable: true
+              description: Vị trí gần nhất từ DriverLocation (FR-14).
+              properties:
+                latitude: { type: number, format: float }
+                longitude: { type: number, format: float }
+                updated_at: { type: string, format: date-time }
+            vehicles:
+              type: array
+              items:
+                $ref: '#/components/schemas/Vehicle'
+
+    Trip:
+      type: object
+      properties:
+        trip_id: { type: string }
+        customer_id: { type: string }
+        driver_id: { type: string, nullable: true }
+        pickup_location:
+          $ref: '#/components/schemas/GeoPoint'
+        dropoff_location:
+          $ref: '#/components/schemas/GeoPoint'
+        vehicle_type: { type: string, enum: [bike, car_4_seats, car_7_seats] }
+        status:
+          $ref: '#/components/schemas/TripStatus'
+        requested_at: { type: string, format: date-time }
+        started_at: { type: string, format: date-time, nullable: true }
+        completed_at: { type: string, format: date-time, nullable: true }
+
+    TripStatusHistoryItem:
+      type: object
+      properties:
+        history_id: { type: string }
+        status:
+          $ref: '#/components/schemas/TripStatus'
+        changed_at: { type: string, format: date-time }
+
+    TripDetail:
+      allOf:
+        - $ref: '#/components/schemas/Trip'
+        - type: object
+          properties:
+            status_history:
+              type: array
+              items:
+                $ref: '#/components/schemas/TripStatusHistoryItem'
+
+    Transaction:
+      type: object
+      description: Giao dịch thanh toán. Không chứa số thẻ/CVV hay thông tin tài khoản nhạy cảm (BR-06, SR-20).
+      properties:
+        payment_id: { type: string }
+        trip_id: { type: string }
+        amount: { type: number }
+        method: { type: string, enum: [cash, e_payment] }
+        status: { type: string, enum: [PENDING, SUCCESS, FAILED] }
+        payment_gateway_ref: { type: string, nullable: true }
+        created_at: { type: string, format: date-time }
+
+    AuditLog:
+      type: object
+      properties:
+        log_id: { type: string }
+        actor_id: { type: string }
+        actor_type: { type: string, enum: [customer, driver, staff, system] }
+        action: { type: string, example: LOCK_DRIVER_ACCOUNT }
+        target_entity: { type: string, example: Driver }
+        target_id: { type: string }
+        created_at: { type: string, format: date-time }
+
+    DriverPerformance:
+      type: object
+      properties:
+        driver_id: { type: string }
+        full_name: { type: string }
+        completed_trips: { type: integer }
+        cancelled_trips: { type: integer }
+        acceptance_rate: { type: number, description: Tỷ lệ chấp nhận chuyến (%) }
+        rating_avg: { type: number, format: float }
+
+    Report:
+      type: object
+      properties:
+        from_date: { type: string, format: date }
+        to_date: { type: string, format: date }
+        total_trips: { type: integer }
+        completed_trips: { type: integer }
+        cancelled_trips: { type: integer }
+        no_driver_found_trips: { type: integer }
+        completion_rate: { type: number, description: Tỷ lệ hoàn thành (%) }
+        cancellation_rate: { type: number, description: Tỷ lệ hủy (%) }
+        total_revenue: { type: number }
+        currency: { type: string, example: VND }
+        driver_performance:
+          type: array
+          items:
+            $ref: '#/components/schemas/DriverPerformance'
+
+    PagedCustomers:
+      type: object
+      properties:
+        data: { type: array, items: { $ref: '#/components/schemas/Customer' } }
+        pagination: { $ref: '#/components/schemas/Pagination' }
+    PagedDrivers:
+      type: object
+      properties:
+        data: { type: array, items: { $ref: '#/components/schemas/Driver' } }
+        pagination: { $ref: '#/components/schemas/Pagination' }
+    PagedVehicles:
+      type: object
+      properties:
+        data: { type: array, items: { $ref: '#/components/schemas/Vehicle' } }
+        pagination: { $ref: '#/components/schemas/Pagination' }
+    PagedTrips:
+      type: object
+      properties:
+        data: { type: array, items: { $ref: '#/components/schemas/Trip' } }
+        pagination: { $ref: '#/components/schemas/Pagination' }
+    PagedTransactions:
+      type: object
+      properties:
+        data: { type: array, items: { $ref: '#/components/schemas/Transaction' } }
+        pagination: { $ref: '#/components/schemas/Pagination' }
+    PagedAuditLogs:
+      type: object
+      properties:
+        data: { type: array, items: { $ref: '#/components/schemas/AuditLog' } }
+        pagination: { $ref: '#/components/schemas/Pagination' }
+
+tags:
+  - name: Admin Auth
+    description: Xác thực nhân viên vận hành
+  - name: Admin - Customers
+    description: Quản lý khách hàng
+  - name: Admin - Drivers
+    description: Quản lý tài xế và kiểm tra trạng thái tài xế
+  - name: Admin - Vehicles
+    description: Quản lý phương tiện
+  - name: Admin - Trips
+    description: Quản lý, giám sát và xử lý sự cố chuyến đi
+  - name: Admin - Transactions
+    description: Tra cứu lịch sử giao dịch
+  - name: Admin - Reports & Audit
+    description: Báo cáo thống kê và nhật ký thao tác
+
+paths:
+  /admin/auth/login:
+    post:
+      tags: [Admin Auth]
+      operationId: adminLogin
+      summary: Đăng nhập nhân viên vận hành / quản trị
+      security: []
+      x-nfr: [NFR-05, NFR-06]
+      x-sr: [SR-19, SR-21]
+      parameters:
+        - $ref: '#/components/parameters/ContentTypeHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [username, password]
+              properties:
+                username: { type: string }
+                password: { type: string, format: password }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthTokenResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+
+  /admin/auth/refresh:
+    post:
+      tags: [Admin Auth]
+      operationId: adminRefreshToken
+      summary: Làm mới access token của nhân viên
+      security: []
+      x-nfr: [NFR-05]
+      parameters:
+        - $ref: '#/components/parameters/ContentTypeHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [refresh_token]
+              properties:
+                refresh_token: { type: string }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthTokenResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /admin/customers:
+    get:
+      tags: [Admin - Customers]
+      operationId: adminListCustomers
+      summary: Danh sách khách hàng
+      x-fr: [FR-26]
+      x-roles: [STAFF, ADMIN]
+      parameters:
+        - $ref: '#/components/parameters/AuthorizationHeader'
+        - $ref: '#/components/parameters/KeywordParam'
+        - name: account_status
+          in: query
+          required: false
+          schema:
+            $ref: '#/components/schemas/AccountStatus'
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/LimitParam'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PagedCustomers'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /admin/customers/{customer_id}:
+    get:
+      tags: [Admin - Customers]
+      operationId: adminGetCustomer
+      summary: Xem chi tiết khách hàng
+      x-fr: [FR-26]
+      x-roles: [STAFF, ADMIN]
+      parameters:
+        - $ref: '#/components/parameters/AuthorizationHeader'
+        - name: customer_id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Customer'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /admin/customers/{customer_id}/status:
+    patch:
+      tags: [Admin - Customers]
+      operationId: adminUpdateCustomerStatus
+      summary: Khóa / mở khóa tài khoản khách hàng
+      description: Thao tác nhạy cảm, chỉ ADMIN. Bắt buộc ghi audit log kèm lý do.
+      x-fr: [FR-26, FR-30]
+      x-br: [BR-08, BR-09]
+      x-ac: [AC-10, AC-14]
+      x-roles: [ADMIN]
+      parameters:
+        - $ref: '#/components/parameters/AuthorizationHeader'
+        - $ref: '#/components/parameters/ContentTypeHeader'
+        - name: customer_id
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [account_status, reason]
+              properties:
+                account_status:
+                  $ref: '#/components/schemas/AccountStatus'
+                reason: { type: string, minLength: 5 }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Customer'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /admin/drivers:
+    post:
+      tags: [Admin - Drivers]
+      operationId: adminCreateDriver
+      summary: Nhân viên vận hành tạo tài khoản tài xế
+      x-fr: [FR-09]
+      x-br: [BR-09]
+      x-tc: [TC-18]
+      x-roles: [STAFF, ADMIN]
+      parameters:
+        - $ref: '#/components/parameters/AuthorizationHeader'
+        - $ref: '#/components/parameters/ContentTypeHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [full_name, phone, license_no]
+              properties:
+                full_name: { type: string }
+                phone: { type: string }
+                license_no: { type: string }
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Driver'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/Conflict'
+    get:
+      tags: [Admin - Drivers]
+      operationId: adminListDrivers
+      summary: Danh sách tài xế và lọc theo trạng thái sẵn sàng
+      description: Lọc theo `status` (AVAILABLE/BUSY/OFFLINE) để kiểm tra trạng thái tài xế (FR-27).
+      x-fr: [FR-26, FR-27]
+      x-roles: [STAFF, ADMIN]
+      parameters:
+        - $ref: '#/components/parameters/AuthorizationHeader'
+        - $ref: '#/components/parameters/KeywordParam'
+        - name: status
+          in: query
+          required: false
+          schema: { type: string, enum: [AVAILABLE, BUSY, OFFLINE] }
+        - name: account_status
+          in: query
+          required: false
+          schema:
+            $ref: '#/components/schemas/AccountStatus'
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/LimitParam'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PagedDrivers'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /admin/drivers/{driver_id}:
+    get:
+      tags: [Admin - Drivers]
+      operationId: adminGetDriver
+      summary: Xem chi tiết tài xế (trạng thái, vị trí gần nhất, phương tiện)
+      x-fr: [FR-27, FR-14]
+      x-br: [BR-11]
+      x-roles: [STAFF, ADMIN]
+      parameters:
+        - $ref: '#/components/parameters/AuthorizationHeader'
+        - name: driver_id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DriverDetail'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    put:
+      tags: [Admin - Drivers]
+      operationId: adminUpdateDriver
+      summary: Cập nhật thông tin tài xế
+      x-fr: [FR-26]
+      x-br: [BR-09]
+      x-roles: [STAFF, ADMIN]
+      parameters:
+        - $ref: '#/components/parameters/AuthorizationHeader'
+        - $ref: '#/components/parameters/ContentTypeHeader'
+        - name: driver_id
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                full_name: { type: string }
+                phone: { type: string }
+                license_no: { type: string }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Driver'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    delete:
+      tags: [Admin - Drivers]
+      operationId: adminDeleteDriver
+      summary: Xóa tài xế (xóa mềm)
+      description: |
+        Thao tác nhạy cảm, chỉ ADMIN. Nên xóa mềm để giữ lịch sử chuyến/giao dịch.
+        Trả `409` nếu tài xế đang có chuyến chưa kết thúc.
+      x-fr: [FR-30]
+      x-br: [BR-08, BR-09]
+      x-ac: [AC-10, AC-14]
+      x-tc: [TC-11, TC-15]
+      x-roles: [ADMIN]
+      parameters:
+        - $ref: '#/components/parameters/AuthorizationHeader'
+        - name: driver_id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '204':
+          description: No Content
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+  /admin/drivers/{driver_id}/status:
+    patch:
+      tags: [Admin - Drivers]
+      operationId: adminUpdateDriverAccountStatus
+      summary: Khóa / mở khóa tài khoản tài xế
+      description: Thao tác nhạy cảm, chỉ ADMIN. Tài xế bị khóa sẽ không nhận được lời mời chuyến.
+      x-fr: [FR-26, FR-30]
+      x-br: [BR-02, BR-08, BR-09]
+      x-ac: [AC-10, AC-14]
+      x-tc: [TC-11, TC-15]
+      x-roles: [ADMIN]
+      parameters:
+        - $ref: '#/components/parameters/AuthorizationHeader'
+        - $ref: '#/components/parameters/ContentTypeHeader'
+        - name: driver_id
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [account_status, reason]
+              properties:
+                account_status:
+                  $ref: '#/components/schemas/AccountStatus'
+                reason: { type: string, minLength: 5 }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Driver'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+  /admin/vehicles:
+    get:
+      tags: [Admin - Vehicles]
+      operationId: adminListVehicles
+      summary: Danh sách phương tiện
+      x-fr: [FR-26]
+      x-roles: [STAFF, ADMIN]
+      parameters:
+        - $ref: '#/components/parameters/AuthorizationHeader'
+        - name: driver_id
+          in: query
+          required: false
+          schema: { type: string }
+        - name: vehicle_type
+          in: query
+          required: false
+          schema: { type: string, enum: [bike, car_4_seats, car_7_seats] }
+        - name: status
+          in: query
+          required: false
+          schema:
+            $ref: '#/components/schemas/VehicleStatus'
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/LimitParam'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PagedVehicles'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /admin/vehicles/{vehicle_id}:
+    get:
+      tags: [Admin - Vehicles]
+      operationId: adminGetVehicle
+      summary: Xem chi tiết phương tiện
+      x-fr: [FR-26]
+      x-roles: [STAFF, ADMIN]
+      parameters:
+        - $ref: '#/components/parameters/AuthorizationHeader'
+        - name: vehicle_id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Vehicle'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /admin/vehicles/{vehicle_id}/status:
+    patch:
+      tags: [Admin - Vehicles]
+      operationId: adminUpdateVehicleStatus
+      summary: Duyệt / khóa phương tiện
+      description: Thao tác nhạy cảm, chỉ ADMIN. Bắt buộc ghi audit log kèm lý do.
+      x-fr: [FR-26, FR-30]
+      x-br: [BR-08, BR-09]
+      x-ac: [AC-10, AC-14]
+      x-roles: [ADMIN]
+      parameters:
+        - $ref: '#/components/parameters/AuthorizationHeader'
+        - $ref: '#/components/parameters/ContentTypeHeader'
+        - name: vehicle_id
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [status, reason]
+              properties:
+                status:
+                  $ref: '#/components/schemas/VehicleStatus'
+                reason: { type: string, minLength: 5 }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Vehicle'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+  /admin/trips:
+    get:
+      tags: [Admin - Trips]
+      operationId: adminListTrips
+      summary: Tra cứu tất cả chuyến đi (mọi trạng thái)
+      x-fr: [FR-26]
+      x-roles: [STAFF, ADMIN]
+      parameters:
+        - $ref: '#/components/parameters/AuthorizationHeader'
+        - name: status
+          in: query
+          required: false
+          schema:
+            $ref: '#/components/schemas/TripStatus'
+        - name: customer_id
+          in: query
+          required: false
+          schema: { type: string }
+        - name: driver_id
+          in: query
+          required: false
+          schema: { type: string }
+        - $ref: '#/components/parameters/FromDateTimeParam'
+        - $ref: '#/components/parameters/ToDateTimeParam'
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/LimitParam'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PagedTrips'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /admin/trips/active:
+    get:
+      tags: [Admin - Trips]
+      operationId: adminListActiveTrips
+      summary: Xem các chuyến đang diễn ra
+      description: Chuyến ở trạng thái SEARCHING, DRIVER_ASSIGNED, DRIVER_ARRIVED hoặc IN_PROGRESS.
+      x-fr: [FR-27]
+      x-roles: [STAFF, ADMIN]
+      parameters:
+        - $ref: '#/components/parameters/AuthorizationHeader'
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/LimitParam'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PagedTrips'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /admin/trips/{trip_id}:
+    get:
+      tags: [Admin - Trips]
+      operationId: adminGetTrip
+      summary: Xem chi tiết chuyến đi kèm lịch sử trạng thái
+      x-fr: [FR-26, FR-28]
+      x-roles: [STAFF, ADMIN]
+      parameters:
+        - $ref: '#/components/parameters/AuthorizationHeader'
+        - name: trip_id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TripDetail'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /admin/trips/{trip_id}/resolve:
+    post:
+      tags: [Admin - Trips]
+      operationId: adminResolveTrip
+      summary: Hỗ trợ xử lý sự cố chuyến đi
+      description: |
+        - `FORCE_COMPLETE`: buộc hoàn thành chuyến (chỉ khi chuyến đang `IN_PROGRESS`).
+        - `FORCE_CANCEL`: buộc hủy chuyến chưa kết thúc.
+        - `REASSIGN_DRIVER`: gán lại tài xế; nếu bỏ trống `new_driver_id`, hệ thống chạy lại matching.
+
+        `reason` được lưu vào audit log. Trả `409` khi trạng thái hiện tại của chuyến không cho phép hành động.
+      x-fr: [FR-28]
+      x-br: [BR-09]
+      x-ac: [AC-14]
+      x-roles: [STAFF, ADMIN]
+      parameters:
+        - $ref: '#/components/parameters/AuthorizationHeader'
+        - $ref: '#/components/parameters/ContentTypeHeader'
+        - name: trip_id
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [action, reason]
+              properties:
+                action: { type: string, enum: [FORCE_COMPLETE, FORCE_CANCEL, REASSIGN_DRIVER] }
+                reason: { type: string, minLength: 5 }
+                new_driver_id:
+                  type: string
+                  description: Chỉ dùng với REASSIGN_DRIVER
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TripDetail'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+  /admin/transactions:
+    get:
+      tags: [Admin - Transactions]
+      operationId: adminListTransactions
+      summary: Tra cứu lịch sử giao dịch toàn hệ thống
+      x-fr: [FR-29]
+      x-br: [BR-06]
+      x-nfr: [NFR-07, NFR-08]
+      x-roles: [STAFF, ADMIN]
+      parameters:
+        - $ref: '#/components/parameters/AuthorizationHeader'
+        - name: trip_id
+          in: query
+          required: false
+          schema: { type: string }
+        - name: status
+          in: query
+          required: false
+          schema: { type: string, enum: [PENDING, SUCCESS, FAILED] }
+        - name: method
+          in: query
+          required: false
+          schema: { type: string, enum: [cash, e_payment] }
+        - $ref: '#/components/parameters/FromDateTimeParam'
+        - $ref: '#/components/parameters/ToDateTimeParam'
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/LimitParam'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PagedTransactions'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /admin/reports:
+    get:
+      tags: [Admin - Reports & Audit]
+      operationId: adminGetReport
+      summary: Xem báo cáo thống kê vận hành & doanh thu
+      description: |
+        Số lượng chuyến, doanh thu, tỷ lệ hoàn thành, tỷ lệ hủy và hiệu quả tài xế trong khoảng thời gian chọn.
+        Cách tính doanh thu (ví dụ có tính chuyến tiền mặt chưa đối soát hay không) chưa được chốt với khách hàng.
+      x-fr: [FR-31]
+      x-ac: [AC-11]
+      x-tc: [TC-12]
+      x-roles: [STAFF, ADMIN, EXEC]
+      parameters:
+        - $ref: '#/components/parameters/AuthorizationHeader'
+        - name: from_date
+          in: query
+          required: true
+          schema: { type: string, format: date }
+        - name: to_date
+          in: query
+          required: true
+          schema: { type: string, format: date }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Report'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /admin/audit-logs:
+    get:
+      tags: [Admin - Reports & Audit]
+      operationId: adminListAuditLogs
+      summary: Tra cứu nhật ký thao tác (audit log)
+      description: Nhật ký chỉ đọc, không thể chỉnh sửa hoặc xóa qua API (SR-21).
+      x-fr: [FR-30]
+      x-br: [BR-09]
+      x-ac: [AC-14]
+      x-nfr: [NFR-09]
+      x-sr: [SR-21]
+      x-tc: [TC-15]
+      x-roles: [ADMIN]
+      parameters:
+        - $ref: '#/components/parameters/AuthorizationHeader'
+        - name: actor_id
+          in: query
+          required: false
+          schema: { type: string }
+        - name: action
+          in: query
+          required: false
+          schema: { type: string }
+        - name: target_entity
+          in: query
+          required: false
+          schema: { type: string }
+        - name: target_id
+          in: query
+          required: false
+          schema: { type: string }
+        - $ref: '#/components/parameters/FromDateTimeParam'
+        - $ref: '#/components/parameters/ToDateTimeParam'
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/LimitParam'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PagedAuditLogs'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+security:
+  - BearerAuth: []
