@@ -1,0 +1,734 @@
+openapi: 3.0.3
+info:
+  title: CAB System API - Customer Module
+  description: |
+    API dành riêng cho nhóm người dùng Khách hàng (Xác thực, Đặt xe, Theo dõi chuyến đi, Hủy chuyến, Lịch sử và Đánh giá).
+
+    **Phạm vi module:** Thanh toán và tính cước KHÔNG nằm trong module này mà thuộc `payment-api.yaml`
+    (`GET /trips/{trip_id}/fare`, `POST /trips/{trip_id}/payments`, `GET /payments/{payment_id}`).
+    Module này chỉ trả về **thông tin tóm tắt thanh toán** (`payment`) trong `Trip` để phục vụ FR-06.
+
+    **Quy ước truy vết:** các trường mở rộng `x-fr`, `x-br`, `x-ac`, `x-nfr`, `x-sr`, `x-tc` liên kết endpoint với SRS.
+  version: "1.1.0"
+  contact:
+    name: Development Team - Công ty ABC
+
+servers:
+  - url: https://api.cabsystem.abc.vn/v1
+    description: Production
+  - url: https://staging-api.cabsystem.abc.vn/v1
+    description: Staging
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Xác thực bằng JWT theo SR-19.
+
+  parameters:
+    AuthorizationHeader:
+      name: Authorization
+      in: header
+      required: true
+      schema:
+        type: string
+        example: "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+    ContentTypeHeader:
+      name: Content-Type
+      in: header
+      required: true
+      schema:
+        type: string
+        enum: [application/json]
+    IdempotencyKeyHeader:
+      name: Idempotency-Key
+      in: header
+      required: false
+      schema:
+        type: string
+        format: uuid
+    PageParam:
+      name: page
+      in: query
+      required: false
+      schema: { type: integer, minimum: 1, default: 1 }
+    LimitParam:
+      name: limit
+      in: query
+      required: false
+      schema: { type: integer, minimum: 1, maximum: 100, default: 20 }
+
+  responses:
+    BadRequest:
+      description: "400 Bad Request - Dữ liệu đầu vào không hợp lệ"
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    Unauthorized:
+      description: "401 Unauthorized - Chưa xác thực hoặc token không hợp lệ"
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    Forbidden:
+      description: "403 Forbidden - Không đủ quyền hoặc không phải chủ sở hữu tài nguyên"
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    NotFound:
+      description: "404 Not Found - Không tìm thấy tài nguyên"
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    Conflict:
+      description: "409 Conflict - Xung đột trạng thái hoặc dữ liệu đã tồn tại"
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    TooManyRequests:
+      description: "429 Too Many Requests - Vượt giới hạn tần suất gọi API"
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    InternalError:
+      description: "500 Internal Server Error - Lỗi hệ thống"
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+  schemas:
+    ErrorResponse:
+      type: object
+      properties:
+        error_code:
+          type: string
+        message:
+          type: string
+        request_id:
+          type: string
+          format: uuid
+
+    GeoPoint:
+      type: object
+      required: [latitude, longitude]
+      properties:
+        latitude:
+          type: number
+          format: float
+        longitude:
+          type: number
+          format: float
+
+    Pagination:
+      type: object
+      properties:
+        page: { type: integer }
+        limit: { type: integer }
+        total_items: { type: integer }
+        total_pages: { type: integer }
+
+    AuthTokenResponse:
+      type: object
+      properties:
+        access_token:
+          type: string
+        refresh_token:
+          type: string
+        token_type:
+          type: string
+          enum: [Bearer]
+        expires_in:
+          type: integer
+          description: Thời gian sống của access_token (giây)
+        customer:
+          $ref: '#/components/schemas/Customer'
+
+    Customer:
+      type: object
+      properties:
+        customer_id:
+          type: string
+        full_name:
+          type: string
+        phone:
+          type: string
+        email:
+          type: string
+          format: email
+
+    TripStatus:
+      type: string
+      description: |
+        Vòng đời chuyến đi (thống nhất với driver-api và matching-api):
+        SEARCHING (đang tìm tài xế) → DRIVER_ASSIGNED (tài xế đã nhận) → DRIVER_ARRIVED (đã đến điểm đón)
+        → IN_PROGRESS (đang di chuyển) → COMPLETED. Nhánh kết thúc khác: CANCELLED, NO_DRIVER_FOUND.
+      enum: [SEARCHING, DRIVER_ASSIGNED, DRIVER_ARRIVED, IN_PROGRESS, COMPLETED, CANCELLED, NO_DRIVER_FOUND]
+
+    DriverSummary:
+      type: object
+      description: Thông tin tài xế hiển thị cho khách hàng sau khi tài xế nhận chuyến (FR-05).
+      properties:
+        driver_id:
+          type: string
+        full_name:
+          type: string
+        rating_avg:
+          type: number
+          format: float
+        plate_number:
+          type: string
+        vehicle_type:
+          type: string
+          enum: [bike, car_4_seats, car_7_seats]
+        current_location:
+          allOf:
+            - $ref: '#/components/schemas/GeoPoint'
+          nullable: true
+
+    PaymentSummary:
+      type: object
+      nullable: true
+      description: |
+        Tóm tắt cước và thanh toán (FR-06). Chi tiết tính cước và giao dịch xem ở Payment module (`payment-api.yaml`).
+        Là `null` khi chuyến chưa hoàn thành.
+      properties:
+        fare_total:
+          type: number
+        currency:
+          type: string
+          example: VND
+        payment_method:
+          type: string
+          enum: [cash, e_payment]
+          nullable: true
+        payment_status:
+          type: string
+          enum: [PENDING, SUCCESS, FAILED]
+          nullable: true
+
+    Trip:
+      type: object
+      properties:
+        trip_id:
+          type: string
+        customer_id:
+          type: string
+        driver_id:
+          type: string
+          nullable: true
+        driver:
+          allOf:
+            - $ref: '#/components/schemas/DriverSummary'
+          nullable: true
+        pickup_location:
+          $ref: '#/components/schemas/GeoPoint'
+        dropoff_location:
+          $ref: '#/components/schemas/GeoPoint'
+        vehicle_type:
+          type: string
+          enum: [bike, car_4_seats, car_7_seats]
+        status:
+          $ref: '#/components/schemas/TripStatus'
+        eta_minutes:
+          type: integer
+          nullable: true
+        payment:
+          $ref: '#/components/schemas/PaymentSummary'
+        requested_at:
+          type: string
+          format: date-time
+        completed_at:
+          type: string
+          format: date-time
+          nullable: true
+
+    TripHistoryPage:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Trip'
+        pagination:
+          $ref: '#/components/schemas/Pagination'
+
+    Rating:
+      type: object
+      properties:
+        rating_id:
+          type: string
+        trip_id:
+          type: string
+        customer_id:
+          type: string
+        driver_id:
+          type: string
+        score:
+          type: integer
+          minimum: 1
+          maximum: 5
+        comment:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+
+    TripEvent:
+      type: object
+      description: Sự kiện đẩy qua kênh SSE (SR-15).
+      properties:
+        trip_id:
+          type: string
+        status:
+          $ref: '#/components/schemas/TripStatus'
+        eta_minutes:
+          type: integer
+          nullable: true
+        driver_location:
+          allOf:
+            - $ref: '#/components/schemas/GeoPoint'
+          nullable: true
+        occurred_at:
+          type: string
+          format: date-time
+
+tags:
+  - name: Auth & Customer
+    description: Đăng ký, đăng nhập và quản lý thông tin khách hàng
+  - name: Trip Booking & Tracking
+    description: Đặt xe, theo dõi, hủy chuyến, lịch sử và đánh giá chuyến đi
+
+paths:
+  /auth/register:
+    post:
+      tags: [Auth & Customer]
+      operationId: registerCustomer
+      summary: Đăng ký tài khoản khách hàng
+      security: []
+      x-fr: [FR-01]
+      x-br: [BR-01]
+      parameters:
+        - $ref: '#/components/parameters/ContentTypeHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [full_name, phone, password]
+              properties:
+                full_name: { type: string }
+                phone: { type: string }
+                email: { type: string, format: email }
+                password: { type: string, format: password }
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Customer'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+  /auth/login:
+    post:
+      tags: [Auth & Customer]
+      operationId: loginCustomer
+      summary: Đăng nhập khách hàng
+      security: []
+      x-fr: [FR-01]
+      x-br: [BR-01]
+      x-nfr: [NFR-05]
+      x-sr: [SR-19]
+      parameters:
+        - $ref: '#/components/parameters/ContentTypeHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [phone, password]
+              properties:
+                phone: { type: string }
+                password: { type: string, format: password }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthTokenResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+
+  /auth/refresh:
+    post:
+      tags: [Auth & Customer]
+      operationId: refreshCustomerToken
+      summary: Làm mới access token
+      security: []
+      x-nfr: [NFR-05]
+      x-sr: [SR-19]
+      parameters:
+        - $ref: '#/components/parameters/ContentTypeHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [refresh_token]
+              properties:
+                refresh_token: { type: string }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthTokenResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /auth/logout:
+    post:
+      tags: [Auth & Customer]
+      operationId: logoutCustomer
+      summary: Đăng xuất và thu hồi refresh token
+      x-nfr: [NFR-05]
+      x-br: [BR-09]
+      parameters:
+        - $ref: '#/components/parameters/AuthorizationHeader'
+        - $ref: '#/components/parameters/ContentTypeHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [refresh_token]
+              properties:
+                refresh_token: { type: string }
+      responses:
+        '204':
+          description: No Content
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /customers/{customer_id}:
+    get:
+      tags: [Auth & Customer]
+      operationId: getCustomer
+      summary: Lấy thông tin cá nhân khách hàng
+      description: Khách hàng chỉ được xem thông tin của chính mình.
+      x-fr: [FR-02]
+      x-nfr: [NFR-07]
+      parameters:
+        - $ref: '#/components/parameters/AuthorizationHeader'
+        - name: customer_id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Customer'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    put:
+      tags: [Auth & Customer]
+      operationId: updateCustomer
+      summary: Cập nhật thông tin khách hàng
+      description: Khách hàng chỉ được cập nhật thông tin của chính mình.
+      x-fr: [FR-02]
+      x-nfr: [NFR-07]
+      parameters:
+        - $ref: '#/components/parameters/AuthorizationHeader'
+        - $ref: '#/components/parameters/ContentTypeHeader'
+        - name: customer_id
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                full_name: { type: string }
+                email: { type: string, format: email }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Customer'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /customers/{customer_id}/trips:
+    get:
+      tags: [Trip Booking & Tracking]
+      operationId: listCustomerTrips
+      summary: Xem lịch sử chuyến đi và số tiền đã thanh toán
+      description: |
+        Trả về danh sách chuyến của khách hàng (mới nhất trước), kèm `payment` tóm tắt (số tiền, trạng thái thanh toán) cho FR-06.
+        Chi tiết cước xem tại `GET /trips/{trip_id}/fare` (Payment module).
+      x-fr: [FR-06]
+      x-nfr: [NFR-07]
+      parameters:
+        - $ref: '#/components/parameters/AuthorizationHeader'
+        - name: customer_id
+          in: path
+          required: true
+          schema: { type: string }
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/LimitParam'
+        - name: status
+          in: query
+          required: false
+          schema:
+            $ref: '#/components/schemas/TripStatus'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TripHistoryPage'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /trips:
+    post:
+      tags: [Trip Booking & Tracking]
+      operationId: createTrip
+      summary: Tạo yêu cầu đặt xe
+      description: |
+        Tạo chuyến với trạng thái `SEARCHING` và kích hoạt matching. Hệ thống gửi thông báo "yêu cầu đã được tiếp nhận" (FR-23).
+        Dùng header `Idempotency-Key` để tránh tạo trùng chuyến khi client gọi lại do mất mạng.
+      x-fr: [FR-03, FR-04, FR-23]
+      x-br: [BR-01]
+      x-ac: [AC-01]
+      x-tc: [TC-01]
+      parameters:
+        - $ref: '#/components/parameters/AuthorizationHeader'
+        - $ref: '#/components/parameters/ContentTypeHeader'
+        - $ref: '#/components/parameters/IdempotencyKeyHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [pickup_location, dropoff_location, vehicle_type]
+              properties:
+                pickup_location:
+                  $ref: '#/components/schemas/GeoPoint'
+                dropoff_location:
+                  $ref: '#/components/schemas/GeoPoint'
+                vehicle_type:
+                  type: string
+                  enum: [bike, car_4_seats, car_7_seats]
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Trip'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+
+  /trips/{trip_id}:
+    get:
+      tags: [Trip Booking & Tracking]
+      operationId: getTrip
+      summary: Theo dõi trạng thái chuyến đi
+      description: |
+        Lấy trạng thái hiện tại của chuyến (đang tìm tài xế, tài xế đã nhận, ETA, ...). Khi `status = NO_DRIVER_FOUND`,
+        ứng dụng hiển thị thông báo không tìm được tài xế (FR-08). Để nhận cập nhật theo thời gian thực không cần polling,
+        dùng `GET /trips/{trip_id}/stream`.
+      x-fr: [FR-05, FR-08]
+      x-br: [BR-04, BR-11]
+      x-ac: [AC-03, AC-04]
+      parameters:
+        - $ref: '#/components/parameters/AuthorizationHeader'
+        - name: trip_id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Trip'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /trips/{trip_id}/stream:
+    get:
+      tags: [Trip Booking & Tracking]
+      operationId: streamTripUpdates
+      summary: Nhận cập nhật chuyến đi theo thời gian thực (SSE)
+      description: |
+        Kênh Server-Sent Events đẩy `TripEvent` mỗi khi trạng thái chuyến, ETA hoặc vị trí tài xế thay đổi (SR-15, SR-16).
+        Kênh thực tế (SSE/WebSocket/MQTT) sẽ chốt ở giai đoạn thiết kế; endpoint này đại diện cho hợp đồng dữ liệu.
+      x-fr: [FR-05]
+      x-ac: [AC-04]
+      x-sr: [SR-15, SR-16]
+      x-tc: [TC-05]
+      parameters:
+        - $ref: '#/components/parameters/AuthorizationHeader'
+        - name: trip_id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Luồng sự kiện (mỗi sự kiện là một TripEvent dạng JSON)
+          content:
+            text/event-stream:
+              schema:
+                $ref: '#/components/schemas/TripEvent'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /trips/{trip_id}/cancel:
+    post:
+      tags: [Trip Booking & Tracking]
+      operationId: cancelTrip
+      summary: Khách hàng hủy chuyến
+      description: |
+        Khách hàng hủy chuyến của mình. Hệ thống dừng matching (nếu đang tìm tài xế) và gửi thông báo cho tài xế đã nhận chuyến (FR-24).
+        Trạng thái được phép hủy và phí hủy (nếu có) phụ thuộc chính sách hủy chuyến — **chưa được khách hàng chốt**;
+        tạm thời chỉ cho hủy khi `SEARCHING`, `DRIVER_ASSIGNED`, `DRIVER_ARRIVED`.
+      x-fr: [FR-24, FR-31]
+      x-ac: [AC-09]
+      x-tc: [TC-10]
+      parameters:
+        - $ref: '#/components/parameters/AuthorizationHeader'
+        - $ref: '#/components/parameters/ContentTypeHeader'
+        - name: trip_id
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                reason: { type: string }
+      responses:
+        '200':
+          description: OK - chuyến chuyển sang CANCELLED
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Trip'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+  /trips/{trip_id}/ratings:
+    post:
+      tags: [Trip Booking & Tracking]
+      operationId: rateDriver
+      summary: Đánh giá tài xế sau chuyến đi
+      description: |
+        Chỉ chủ chuyến mới được đánh giá, chuyến phải ở trạng thái `COMPLETED`, và mỗi chuyến chỉ được đánh giá một lần.
+      x-fr: [FR-07]
+      x-tc: [TC-17]
+      parameters:
+        - $ref: '#/components/parameters/AuthorizationHeader'
+        - $ref: '#/components/parameters/ContentTypeHeader'
+        - name: trip_id
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [score]
+              properties:
+                score: { type: integer, minimum: 1, maximum: 5 }
+                comment: { type: string }
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Rating'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+security:
+  - BearerAuth: []
