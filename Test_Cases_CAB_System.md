@@ -523,7 +523,7 @@
 | TC-TXNADM-019 | Có ≥3 giao dịch khác thời điểm         | 1\. GET /admin/transactions 2. Kiểm tra thứ tự                                    | 3 giao dịch khác nhau                      | Thứ tự đúng theo quy ước hệ thống                                          | Low          |
 | TC-TXNADM-020 | Có giao dịch SUCCESS trong khoảng ngày | 1\. GET /admin/transactions?status=SUCCESS 2. So sánh tổng với GET /admin/reports | Cùng khoảng ngày                           | Tổng amount các giao dịch SUCCESS khớp với total_revenue trong Report      | High         |
 
-**24. Test Scenario: Quản lý phương tiện (Vehicle)**
+**22. Test Scenario: Quản lý phương tiện (Vehicle)**
 
 | **ID**         | **Test Case**                                               | **Preconditions**                     | **Test Steps**                                         | **Test Data**                                           | **Expected Result**                                                           | **Priority** |
 |----------------|-------------------------------------------------------------|---------------------------------------|--------------------------------------------------------|---------------------------------------------------------|-------------------------------------------------------------------------------|--------------|
