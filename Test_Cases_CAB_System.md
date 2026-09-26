@@ -547,6 +547,7 @@
 | TC-VEHICLE-018 | Tra cứu phương tiện khi chưa đăng nhập                      | Không có access_token                 | 1\. GET /admin/vehicles không kèm token                | Không có token                                          | 401 Unauthorized                                                              | High         |
 | TC-VEHICLE-019 | Không có phương tiện nào khớp filter                        | Không có dữ liệu khớp                 | 1\. GET /admin/vehicles?driver_id=not_exist            | driver_id: "not_exist"                                  | 200 OK, data: \[\]                                                            | Low          |
 | TC-VEHICLE-020 | Kiểm tra audit log ghi nhận đúng sau khi duyệt phương tiện  | ADMIN vừa duyệt 1 phương tiện         | 1\. PATCH status = ACTIVE 2. GET /admin/audit-logs     | action đã thực hiện                                     | Log mới xuất hiện với actor_id, action, target_entity=Vehicle, target_id đúng | High         |
+
 **23. Test Scenario: Nhân viên vận hành xử lý sự cố chuyến đi**
 
 | **ID**         | **Test Case**                                                              | **Preconditions**                                   | **Test Steps**                                               | **Test Data**                                                                  | **Expected Result**                                            | **Priority** |
